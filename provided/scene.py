@@ -10,7 +10,7 @@ from tqdm import tqdm
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
 
-shadow_epsilon = 10**(-6)
+shadow_epsilon = 10**(-4)
 
 
 class Scene:
@@ -66,14 +66,14 @@ class Scene:
         ):
             colour = glm.vec3(0, 0, 0)
 
-            # TODO: Generate rays
+            # generate ray
             x = left + (right - left) * (i + 0.5) / self.width
-            y = top - (top - bottom) * (j + 0.5) / self.height
+            y = bottom + (top - bottom) * (j + 0.5) / self.height
             origin = self.position
-            direction = glm.normalize(x * u + y * v - d * w)
-            ray = hc.Ray(origin, direction)
+            light_dir = glm.normalize(x * u + y * v - d * w)
+            ray = hc.Ray(origin, light_dir)
 
-            # TODO: Test for intersection
+            # get all intesections with all objects
             intersections = []
             for obj in self.objects:
                 intersect = obj.intersect(ray, hc.Intersection.default())
@@ -86,12 +86,70 @@ class Scene:
                 image[i, j, 2] = 0.0
                 continue
 
+            # get first intersection
             intersections.sort(key=lambda x: x.time)
             first_intersect = intersections[0]
 
+            # lighting
             colour = self.ambient * first_intersect.mat.diffuse
+            for light in self.lights:
+                if light.type == "point":
+                    # check shadow ray
+                    skip = False
+                    shadow_ray = hc.Ray(
+                        first_intersect.position, light.vector - first_intersect.position)
+                    for obj in self.objects:
+                        shadow_intersect = obj.intersect(
+                            shadow_ray, hc.Intersection.default())
+                        if shadow_intersect is not None and shadow_epsilon < shadow_intersect.time < 1.0:
+                            skip = True
+                            break
 
-            # TODO: Perform shading computations on the intersection point
+                    if skip:
+                        continue
+
+                    # not in shadow
+                    normal = first_intersect.normal
+                    light_dir = glm.normalize(
+                        light.vector - first_intersect.position)
+
+                    lambert = first_intersect.mat.diffuse * light.power * \
+                        max(0.0, glm.dot(normal, light_dir))
+
+                    half_vect = glm.normalize(light_dir - ray.direction)
+                    specular = first_intersect.mat.specular * light.power * \
+                        max(0.0, glm.dot(normal, half_vect)
+                            ) ** first_intersect.mat.hardness
+
+                    colour += light.colour * (lambert + specular)
+                elif light.type == "directional":
+                    # check shadow ray
+                    skip = False
+                    shadow_ray = hc.Ray(
+                        first_intersect.position, -light.vector)
+                    for obj in self.objects:
+                        shadow_intersect = obj.intersect(
+                            shadow_ray, hc.Intersection.default())
+                        if shadow_intersect is not None and shadow_epsilon < shadow_intersect.time < float("inf"):
+                            skip = True
+                            break
+
+                    if skip:
+                        continue
+
+                    # not in shadow
+                    normal = first_intersect.normal
+                    light_dir = glm.normalize(-light.vector)
+
+                    lambert = first_intersect.mat.diffuse * light.power * \
+                        max(0.0, glm.dot(normal, light_dir))
+
+                    half_vect = glm.normalize(light_dir - ray.direction)
+                    specular = first_intersect.mat.specular * light.power * \
+                        max(0.0, glm.dot(normal, half_vect)
+                            ) ** first_intersect.mat.hardness
+
+                    colour += light.colour * (lambert + specular)
 
             image[i, j, 0] = max(0.0, min(1.0, colour.x))
             image[i, j, 1] = max(0.0, min(1.0, colour.y))

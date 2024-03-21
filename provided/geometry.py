@@ -51,8 +51,22 @@ class Plane(Geometry):
         self.normal = normal
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
-        # TODO: Create intersect code for Plane
+        denom = glm.dot(ray.direction, self.normal)
+        if abs(denom) > epsilon:
+            t = glm.dot(self.point - ray.origin, self.normal) / denom
+            if t >= 0:
+                position = ray.getPoint(t)
+
+                if len(self.materials) == 1:
+                    mat = self.materials[0]
+                else:
+                    dx = math.floor(position.x - self.point.x)
+                    dz = math.floor(position.z - self.point.z)
+                    mat = self.materials[(dx + dz) % 2]
+
+                intersect = hc.Intersection(t, self.normal, position, mat)
+                return intersect
+        return None
 
 
 class AABB(Geometry):
