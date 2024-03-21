@@ -3,14 +3,14 @@ import json
 import helperclasses as hc
 import geometry as geom
 import scene
-import taichi.math as tm
+import glm
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
 
 
 def populateVec(array: list):
-    return tm.vec3(array[0], array[1], array[2])
+    return glm.vec3(array[0], array[1], array[2])
 
 
 def load_scene(infile):
@@ -56,21 +56,18 @@ def load_scene(infile):
             l_type = light["type"]
             l_name = light["name"]
             l_colour = populateVec(light["colour"])
-            l_type_int = -1
 
             if l_type == "point":
                 l_vector = populateVec(light["position"])
                 l_power = light["power"]
-                l_type_int = 0
 
             elif l_type == "directional":
                 l_vector = populateVec(light["direction"])
                 l_power = 1.0
-                l_type_int = 1
             else:
                 print("Unkown light type", l_type, ", skipping initialization")
                 continue
-            lights.append(hc.Light(l_type_int, l_colour, l_vector, l_power))
+            lights.append(hc.Light(l_type, l_name, l_colour, l_vector, l_power))
     except KeyError:
         lights = []
 
@@ -82,8 +79,7 @@ def load_scene(infile):
         mat_hardness = material["hardness"]
         mat_name = material["name"]
         mat_id = material["ID"]
-        materials.append(hc.Material(mat_specular,
-                         mat_diffuse, mat_hardness, mat_id))
+        materials.append(hc.Material(mat_name, mat_specular, mat_diffuse, mat_hardness, mat_id))
 
     # Loading geometry
     objects = []
@@ -128,8 +124,7 @@ def load_scene(infile):
                     node.make_matrices(g_pos, g_r, g_s)
                     objects.append(node)
                 else:
-                    print("Node reference", g_ref,
-                          "not found, skipping creation")
+                    print("Node reference", g_ref, "not found, skipping creation")
 
         else:
             print("Unkown object type", g_type, ", skipping initialization")
@@ -142,7 +137,7 @@ def load_scene(infile):
                        materials, objects)  # General settings
 
 
-def add_basic_shape(g_name: str, g_type: str, g_pos: tm.vec3, g_mats: list[hc.Material], geometry, objects: list[geom.Geometry]):
+def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_mats: list[hc.Material], geometry, objects: list[geom.Geometry]):
     # Function for adding non-hierarchies to a list, since there's nothing extra to do with them
     # Returns True if a shape was added, False otherwise
     if g_type == "sphere":
@@ -157,15 +152,14 @@ def add_basic_shape(g_name: str, g_type: str, g_pos: tm.vec3, g_mats: list[hc.Ma
             objects.append(geom.AABB(g_name, g_type, g_mats, g_pos, g_size))
         except KeyError:
             # Boxes can also be directly declared with a min and max position
-            box = geom.AABB(g_name, g_type, g_mats, g_pos, tm.vec3(0, 0, 0))
+            box = geom.AABB(g_name, g_type, g_mats, g_pos, glm.vec3(0, 0, 0))
             box.minpos = populateVec(geometry["min"])
             box.maxpos = populateVec(geometry["max"])
             objects.append(box)
     elif g_type == "mesh":
         g_path = geometry["filepath"]
         g_scale = geometry["scale"]
-        objects.append(
-            geom.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path))
+        objects.append(geom.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path))
     else:
         return False
     return True
@@ -179,7 +173,7 @@ def traverse_children(node: geom.Hierarchy, children, materials: list[hc.Materia
         try:
             g_pos = populateVec(geometry["position"])
         except KeyError:
-            g_pos = tm.vec3(0, 0, 0)
+            g_pos = glm.vec3(0, 0, 0)
         g_mats = associate_material(materials, geometry["materials"])
 
         if add_basic_shape(g_name, g_type, g_pos, g_mats, geometry, node.children):
@@ -193,8 +187,7 @@ def traverse_children(node: geom.Hierarchy, children, materials: list[hc.Materia
             node.children.append(inner)
             traverse_children(inner, geometry["children"], materials)
         else:
-            print("Unkown child object type", g_type,
-                  ", skipping initialization")
+            print("Unkown child object type", g_type, ", skipping initialization")
 
 
 def associate_material(mats: list[hc.Material], ids: list[int]):

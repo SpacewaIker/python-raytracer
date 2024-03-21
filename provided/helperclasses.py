@@ -1,39 +1,24 @@
-import taichi.math as tm
-import taichi as ti
+import glm
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
 
-vec3 = ti.math.vec3
 
-
-@ti.dataclass
 class Ray:
-    origin: vec3
-    direction: vec3
-
-    @ti.func
-    def __init__(self, o: vec3, d: vec3):
+    def __init__(self, o: glm.vec3, d: glm.vec3):
         self.origin = o
         self.direction = d
 
-    @ti.func
-    def getDistance(self, point: vec3):
-        return tm.length(point - self.origin)
+    def getDistance(self, point: glm.vec3):
+        return glm.length(point - self.origin)
 
-    @ti.func
     def getPoint(self, t: float):
         return self.origin + self.direction * t
 
 
-@ti.dataclass
 class Material:
-    specular: vec3
-    diffuse: vec3
-    hardness: float
-    ID: int
-
-    def __init__(self, specular: vec3, diffuse: vec3, hardness: float, ID: int):
+    def __init__(self, name: str, specular: glm.vec3, diffuse: glm.vec3, hardness: float, ID: int):
+        self.name = name
         self.specular = specular
         self.diffuse = diffuse
         self.hardness = hardness
@@ -41,33 +26,24 @@ class Material:
 
     @staticmethod
     def default():
-        specular = diffuse = vec3(0, 0, 0)
+        name = "default"
+        specular = diffuse = glm.vec3(0, 0, 0)
         hardness = ID = -1
-        return Material(specular, diffuse, hardness, ID)
+        return Material(name, specular, diffuse, hardness, ID)
 
 
-@ti.dataclass
 class Light:
-    ltype: int
-    colour: vec3
-    vector: vec3
-    power: float
-
-    def __init__(self, ltype: int, colour: vec3, vector: vec3, power: float):
-        self.ltype = ltype
+    def __init__(self, ltype: str, name: str, colour: glm.vec3, vector: glm.vec3, power: float):
+        self.type = ltype
+        self.name = name
         self.colour = colour
         self.vector = vector
         self.power = power
 
 
-@ti.dataclass
 class Intersection:
-    time: float
-    normal: vec3
-    position: vec3
-    mat: Material
 
-    def __init__(self, time: float, normal: vec3, position: vec3, material: Material):
+    def __init__(self, time: float, normal: glm.vec3, position: glm.vec3, material: Material):
         self.time = time
         self.normal = normal
         self.position = position
@@ -76,7 +52,7 @@ class Intersection:
     @staticmethod
     def default():
         time = float("inf")
-        normal = vec3(0, 0, 0)
-        position = vec3(0, 0, 0)
+        normal = glm.vec3(0, 0, 0)
+        position = glm.vec3(0, 0, 0)
         mat = Material.default()
         return Intersection(time, normal, position, mat)

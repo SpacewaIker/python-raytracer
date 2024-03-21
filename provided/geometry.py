@@ -2,7 +2,6 @@ import math
 import helperclasses as hc
 import glm
 import igl
-import taichi as ti
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
@@ -20,31 +19,15 @@ class Geometry:
         return intersect
 
 
-@ti.data_oriented
 class Sphere(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, radius: float):
         super().__init__(name, gtype, materials)
         self.center = center
         self.radius = radius
 
-    @ti.kernel
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        a = glm.dot(ray.direction, ray.direction)  # a = d . d
-        b = 2 * glm.dot(ray.direction, ray.origin -
-                        self.center)  # b = 2 (d . p - d . c)
-        c = glm.dot(ray.origin - self.center, ray.origin - self.center) - \
-            self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
-
-        discriminant = b ** 2 - 4 * a * c
-        if discriminant < 0:
-            return None
-        t = (-b - math.sqrt(discriminant)) / (2 * a)
-        position = ray.getPoint(t)
-        normal = glm.normalize(position - self.center)
-
-        intersection = hc.Intersection(t, normal, position, self.materials[0])
-
-        return intersection
+        pass
+        # TODO: Create intersect code for Sphere
 
 
 class Plane(Geometry):

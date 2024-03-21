@@ -1,13 +1,10 @@
 import math
 
+import glm
 import numpy as np
-from tqdm import tqdm
-import itertools
-import taichi as ti
-import taichi.math as tm
+
 import geometry as geom
 import helperclasses as hc
-import glm
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
@@ -15,7 +12,6 @@ import glm
 shadow_epsilon = 10**(-6)
 
 
-@ti.data_oriented
 class Scene:
 
     def __init__(self,
@@ -23,11 +19,11 @@ class Scene:
                  height: int,
                  jitter: bool,
                  samples: int,
-                 position: tm.vec3,
-                 lookat: tm.vec3,
-                 up: tm.vec3,
+                 position: glm.vec3,
+                 lookat: glm.vec3,
+                 up: glm.vec3,
                  fov: float,
-                 ambient: tm.vec3,
+                 ambient: glm.vec3,
                  lights: list[hc.Light],
                  materials: list[hc.Material],
                  objects: list[geom.Geometry]
@@ -44,12 +40,11 @@ class Scene:
         self.ambient = ambient  # ambient lighting
         self.lights = lights  # all lights in the scene
         self.materials = materials  # all materials of objects in the scene
-        self.objects = ti.field(objects)  # all objects in the scene
+        self.objects = objects  # all objects in the scene
 
     def render(self):
-        # image = np.zeros((self.width, self.height, 3))
-        image = ti.field(ti.f32, (self.width, self.height, 3))
-        image.fill(0)
+
+        image = np.zeros((self.width, self.height, 3))
 
         cam_dir = self.position - self.lookat
         d = 1.0
@@ -58,70 +53,23 @@ class Scene:
         bottom = -top
         left = -right
 
-        cam_dir_glm = glm.vec3(cam_dir.x, cam_dir.y, cam_dir.z)
-        up_glm = glm.vec3(self.up.x, self.up.y, self.up.z)
-        w = glm.normalize(cam_dir_glm)
-        u = glm.cross(up_glm, w)
+        w = glm.normalize(cam_dir)
+        u = glm.cross(self.up, w)
         u = glm.normalize(u)
         v = glm.cross(w, u)
 
-        u = tm.vec3(u.x, u.y, u.z)
-        v = tm.vec3(v.x, v.y, v.z)
-        w = tm.vec3(w.x, w.y, w.z)
+        for i in range(self.width):
+            for j in range(self.height):
+                colour = glm.vec3(0, 0, 0)
 
-        for i, j in tqdm(
-            itertools.product(range(self.width), range(self.height)),
-            total=self.width * self.height,
-            desc="Rendering",
-        ):
-            self.cast_ray(image, u, v, w, d, left, right, bottom, top, i, j)
+                # TODO: Generate rays
 
-        return self.image
+                # TODO: Test for intersection
 
-    @ti.kernel
-    def cast_ray(self,
-                 image: ti.template(),
-                 u: tm.vec3,
-                 v: tm.vec3,
-                 w: tm.vec3,
-                 d: float,
-                 left: float,
-                 right: float,
-                 top: float,
-                 bottom: float,
-                 i: int,
-                 j: int
-                 ):
-        colour = tm.vec3(0, 0, 0)
+                # TODO: Perform shading computations on the intersection point
 
-        # TODO: Generate rays
-        x = left + (right - left) * (i + 0.5) / self.width
-        y = top - (top - bottom) * (j + 0.5) / self.height
-        origin = self.position
-        direction = tm.normalize(x * u + y * v - d * w)
-        ray = hc.Ray(origin, direction)
+                image[i, j, 0] = max(0.0, min(1.0, colour.x))
+                image[i, j, 1] = max(0.0, min(1.0, colour.y))
+                image[i, j, 2] = max(0.0, min(1.0, colour.z))
 
-        # TODO: Test for intersection
-        intersections = []
-        for obj in self.objects:
-            intersect = obj.intersect(ray, hc.Intersection.default())
-            if intersect is not None and intersect.time < float("inf"):
-                intersections.append(intersect)
-
-        if len(intersections) == 0:
-            self.image[i, j, 0] = 0.0
-            self.image[i, j, 1] = 0.0
-            self.image[i, j, 2] = 0.0
-            return
-
-        intersections.sort(key=lambda x: x.time)
-        firstIntersection = intersections[0]
-
-        # colour = firstIntersection.mat.diffuse * self.ambient
-        colour = tm.vec3(1, 0, 0)
-
-        # TODO: Perform shading computations on the intersection point
-
-        self.image[i, j, 0] = max(0.0, min(1.0, colour.x))
-        self.image[i, j, 1] = max(0.0, min(1.0, colour.y))
-        self.image[i, j, 2] = max(0.0, min(1.0, colour.z))
+        return image
