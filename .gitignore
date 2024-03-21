@@ -1,0 +1,5 @@
+meshes/
+scenes/
+provided/__pycache__
+*.zip
+*.pdf
