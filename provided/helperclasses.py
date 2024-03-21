@@ -56,3 +56,10 @@ class Intersection:
         position = glm.vec3(0, 0, 0)
         mat = Material.default()
         return Intersection(time, normal, position, mat)
+
+
+class AAInterval:
+    def __init__(self, t1: float, t2: float, label: str = None):
+        self.start = min(t1, t2)
+        self.end = max(t1, t2)
+        self.label = label
