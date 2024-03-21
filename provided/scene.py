@@ -2,9 +2,10 @@ import math
 
 import glm
 import numpy as np
-
+import itertools
 import geometry as geom
 import helperclasses as hc
+from tqdm import tqdm
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
@@ -58,18 +59,42 @@ class Scene:
         u = glm.normalize(u)
         v = glm.cross(w, u)
 
-        for i in range(self.width):
-            for j in range(self.height):
-                colour = glm.vec3(0, 0, 0)
+        for i, j in tqdm(
+            itertools.product(range(self.width), range(self.height)),
+            total=self.width * self.height,
+            desc="Rendering",
+        ):
+            colour = glm.vec3(0, 0, 0)
 
-                # TODO: Generate rays
+            # TODO: Generate rays
+            x = left + (right - left) * (i + 0.5) / self.width
+            y = top - (top - bottom) * (j + 0.5) / self.height
+            origin = self.position
+            direction = glm.normalize(x * u + y * v - d * w)
+            ray = hc.Ray(origin, direction)
 
-                # TODO: Test for intersection
+            # TODO: Test for intersection
+            intersections = []
+            for obj in self.objects:
+                intersect = obj.intersect(ray, hc.Intersection.default())
+                if intersect is not None and intersect.time < float("inf"):
+                    intersections.append(intersect)
 
-                # TODO: Perform shading computations on the intersection point
+            if len(intersections) == 0:
+                image[i, j, 0] = 0.0
+                image[i, j, 1] = 0.0
+                image[i, j, 2] = 0.0
+                continue
 
-                image[i, j, 0] = max(0.0, min(1.0, colour.x))
-                image[i, j, 1] = max(0.0, min(1.0, colour.y))
-                image[i, j, 2] = max(0.0, min(1.0, colour.z))
+            intersections.sort(key=lambda x: x.time)
+            first_intersect = intersections[0]
+
+            colour = self.ambient * first_intersect.mat.diffuse
+
+            # TODO: Perform shading computations on the intersection point
+
+            image[i, j, 0] = max(0.0, min(1.0, colour.x))
+            image[i, j, 1] = max(0.0, min(1.0, colour.y))
+            image[i, j, 2] = max(0.0, min(1.0, colour.z))
 
         return image

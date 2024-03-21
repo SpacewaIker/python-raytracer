@@ -26,8 +26,22 @@ class Sphere(Geometry):
         self.radius = radius
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
-        # TODO: Create intersect code for Sphere
+        a = glm.dot(ray.direction, ray.direction)  # a = d . d
+        b = 2 * glm.dot(ray.direction, ray.origin -
+                        self.center)  # b = 2 (d . p - d . c)
+        c = glm.dot(ray.origin - self.center, ray.origin - self.center) - \
+            self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
+
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            return None
+        t = (-b - math.sqrt(discriminant)) / (2 * a)
+        position = ray.getPoint(t)
+        normal = glm.normalize(position - self.center)
+
+        intersect = hc.Intersection(t, normal, position, self.materials[0])
+
+        return intersect
 
 
 class Plane(Geometry):
