@@ -78,43 +78,60 @@ class AABB(Geometry):
         self.maxpos = center + halfside
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        # check if the direction is axis aligned
-        if abs(ray.direction.x) < epsilon or abs(ray.direction.y) < epsilon or abs(ray.direction.z) < epsilon:
-            return None
+        if ray.direction.x == 0:
+            if not (self.minpos.x < ray.origin.x < self.maxpos.x):
+                return None
+            x_interval = hc.AAInterval(float("-inf"), float("inf"), "x")
+        else:
+            t_x_1 = (self.minpos.x - ray.origin.x) / ray.direction.x
+            t_x_2 = (self.maxpos.x - ray.origin.x) / ray.direction.x
+            x_interval = hc.AAInterval(t_x_1, t_x_2, "x")
 
-        t_x_1 = (self.minpos.x - ray.origin.x) / ray.direction.x
-        t_x_2 = (self.maxpos.x - ray.origin.x) / ray.direction.x
-        x_interval = hc.AAInterval(t_x_1, t_x_2, "x")
+        if ray.direction.y == 0:
+            if not (self.minpos.y < ray.origin.y < self.maxpos.y):
+                return None
+            y_interval = hc.AAInterval(float("-inf"), float("inf"), "y")
+        else:
+            t_y_1 = (self.minpos.y - ray.origin.y) / ray.direction.y
+            t_y_2 = (self.maxpos.y - ray.origin.y) / ray.direction.y
+            y_interval = hc.AAInterval(t_y_1, t_y_2, "y")
 
-        t_y_1 = (self.minpos.y - ray.origin.y) / ray.direction.y
-        t_y_2 = (self.maxpos.y - ray.origin.y) / ray.direction.y
-        y_interval = hc.AAInterval(t_y_1, t_y_2, "y")
-
-        t_z_1 = (self.minpos.z - ray.origin.z) / ray.direction.z
-        t_z_2 = (self.maxpos.z - ray.origin.z) / ray.direction.z
-        z_interval = hc.AAInterval(t_z_1, t_z_2, "z")
+        if ray.direction.z == 0:
+            if not (self.minpos.z < ray.origin.z < self.maxpos.z):
+                return None
+            z_interval = hc.AAInterval(float("-inf"), float("inf"), "z")
+        else:
+            t_z_1 = (self.minpos.z - ray.origin.z) / ray.direction.z
+            t_z_2 = (self.maxpos.z - ray.origin.z) / ray.direction.z
+            z_interval = hc.AAInterval(t_z_1, t_z_2, "z")
 
         intersected = (max(x_interval, y_interval, z_interval, key=lambda x: x.start),
                        min(x_interval, y_interval, z_interval, key=lambda x: x.end))
 
         if intersected[0].start > intersected[1].end:
             return None
-        else:
-            time = intersected[0].start
 
-            if intersected[0].label == "x":
-                normal = glm.vec3(1, 0, 0)
-            elif intersected[0].label == "y":
-                normal = glm.vec3(0, 1, 0)
-            elif intersected[0].label == "z":
-                normal = glm.vec3(0, 0, 1)
+        time = intersected[0].start
 
-            position = ray.getPoint(time)
-            mat = self.materials[0]
+        if intersected[0].label == "x" and ray.direction.x < 0:
+            normal = glm.vec3(1, 0, 0)
+        elif intersected[0].label == "x" and ray.direction.x > 0:
+            normal = glm.vec3(-1, 0, 0)
+        elif intersected[0].label == "y" and ray.direction.y < 0:
+            normal = glm.vec3(0, 1, 0)
+        elif intersected[0].label == "y" and ray.direction.y > 0:
+            normal = glm.vec3(0, -1, 0)
+        elif intersected[0].label == "z" and ray.direction.z < 0:
+            normal = glm.vec3(0, 0, 1)
+        elif intersected[0].label == "z" and ray.direction.z > 0:
+            normal = glm.vec3(0, 0, -1)
 
-            intersect = hc.Intersection(time, normal, position, mat)
+        position = ray.getPoint(time)
+        mat = self.materials[0]
 
-            return intersect
+        intersect = hc.Intersection(time, normal, position, mat)
+
+        return intersect
 
 
 class Mesh(Geometry):
