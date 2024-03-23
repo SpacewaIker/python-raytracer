@@ -1,7 +1,6 @@
 import numpy
 import scene_parser
 import argparse
-import matplotlib.pyplot as plt
 from PIL import Image
 
 # Ported from C++ by Melissa Katz
@@ -22,7 +21,4 @@ if __name__ == "__main__":
 
     im = Image.fromarray((image * 255).astype(numpy.uint8))
     im.save(args.outfile)
-
-    plt.axis("off")
-    plt.imshow(image)
-    plt.show()
+    im.show()

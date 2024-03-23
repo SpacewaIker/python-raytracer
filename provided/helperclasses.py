@@ -1,4 +1,5 @@
 import glm
+from typing import Any
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
@@ -14,6 +15,9 @@ class Ray:
 
     def getPoint(self, t: float):
         return self.origin + self.direction * t
+
+    def __repr__(self):
+        return f"Ray(origin: {self.origin}, dir: {self.direction})"
 
 
 class Material:
@@ -31,6 +35,9 @@ class Material:
         hardness = ID = -1
         return Material(name, specular, diffuse, hardness, ID)
 
+    def __repr__(self):
+        return f"Material({self.name}, specular: {self.specular}, diffuse: {self.diffuse}, hardness: {self.hardness}, ID: {self.ID})"
+
 
 class Light:
     def __init__(self, ltype: str, name: str, colour: glm.vec3, vector: glm.vec3, power: float):
@@ -40,26 +47,26 @@ class Light:
         self.vector = vector
         self.power = power
 
-
-class Intersection:
-
-    def __init__(self, time: float, normal: glm.vec3, position: glm.vec3, material: Material):
-        self.time = time
-        self.normal = normal
-        self.position = position
-        self.mat = material
-
-    @staticmethod
-    def default():
-        time = float("inf")
-        normal = glm.vec3(0, 0, 0)
-        position = glm.vec3(0, 0, 0)
-        mat = Material.default()
-        return Intersection(time, normal, position, mat)
+    def __repr__(self):
+        return f"Light({self.name}, type: {self.type}, colour: {self.colour}, vector: {self.vector}, power: {self.power})"
 
 
 class AAInterval:
-    def __init__(self, t1: float, t2: float, label: str = None):
+    def __init__(self, t1: float, t2: float, label: Any = None):
         self.start = min(t1, t2)
         self.end = max(t1, t2)
         self.label = label
+
+
+class ViewportCamera:
+    def __init__(self, position: glm.vec3, lookat: glm.vec3, up: glm.vec3, fov: float, aspect: float):
+        cam_dir = position - lookat
+        self.d = 1.0
+        self.top = self.d * glm.tan(glm.radians(fov / 2))
+        self.right = aspect * self.top
+        self.bottom = -self.top
+        self.left = -self.right
+
+        self.w = glm.normalize(cam_dir)
+        self.u = glm.normalize(glm.cross(up, self.w))
+        self.v = glm.cross(self.w, self.u)

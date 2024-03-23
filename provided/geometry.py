@@ -9,23 +9,56 @@ import igl
 epsilon = 10 ** (-4)
 
 
+class Intersection:
+
+    def __init__(self, time: float, normal: glm.vec3, position: glm.vec3, material: hc.Material, geometry: "Geometry" = None):
+        self.time = time
+        self.normal = normal
+        self.position = position
+        self.mat = material
+        self.geometry = geometry
+
+    @staticmethod
+    def default():
+        time = float("inf")
+        normal = glm.vec3(0, 0, 0)
+        position = glm.vec3(0, 0, 0)
+        mat = hc.Material.default()
+        return Intersection(time, normal, position, mat)
+
+    def __repr__(self):
+        if self.geometry is None:
+            return f"Intersection(time: {self.time}, position: {self.position}, normal: {self.normal})"
+        return f"Intersection(time: {self.time}, position: {self.position}, normal: {self.normal}, geometry: {self.geometry.name})"
+
+
 class Geometry:
+    shadow_epsilon = 10 ** (-6)
+
     def __init__(self, name: str, gtype: str, materials: list[hc.Material]):
         self.name = name
         self.gtype = gtype
         self.materials = materials
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        return intersect
+    def intersect(self, ray: hc.Ray) -> Intersection:
+        return None
+
+    def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        return False
+
+    def __repr__(self):
+        return f"Geometry({self.name}, type: {self.gtype})"
 
 
 class Sphere(Geometry):
+    shadow_epsilon = 10 ** (-4)
+
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, radius: float):
         super().__init__(name, gtype, materials)
         self.center = center
         self.radius = radius
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
+    def intersect(self, ray: hc.Ray) -> Intersection:
         a = glm.dot(ray.direction, ray.direction)  # a = d . d
         b = 2 * glm.dot(ray.direction, ray.origin -
                         self.center)  # b = 2 (d . p - d . c)
@@ -39,9 +72,35 @@ class Sphere(Geometry):
         position = ray.getPoint(t)
         normal = glm.normalize(position - self.center)
 
-        intersect = hc.Intersection(t, normal, position, self.materials[0])
+        intersect = Intersection(t, normal, position, self.materials[0], self)
 
         return intersect
+
+    def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        a = glm.dot(ray.direction, ray.direction)  # a = d . d
+        b = 2 * glm.dot(ray.direction, ray.origin -
+                        self.center)  # b = 2 (d . p - d . c)
+        c = glm.dot(ray.origin - self.center, ray.origin - self.center) - \
+            self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
+
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            return False
+
+        t = (-b - math.sqrt(discriminant)) / (2 * a)
+
+        if self.shadow_epsilon < t < t_max:
+            return True
+
+        t = (-b + math.sqrt(discriminant)) / (2 * a)
+
+        if self.shadow_epsilon < t < t_max:
+            return True
+
+        return False
+
+    def __repr__(self):
+        return f"Sphere({self.name}, center: {self.center}, radius: {self.radius})"
 
 
 class Plane(Geometry):
@@ -50,7 +109,7 @@ class Plane(Geometry):
         self.point = point
         self.normal = normal
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
+    def intersect(self, ray: hc.Ray) -> Intersection:
         denom = glm.dot(ray.direction, self.normal)
         if abs(denom) > epsilon:
             t = glm.dot(self.point - ray.origin, self.normal) / denom
@@ -64,9 +123,18 @@ class Plane(Geometry):
                     dz = math.floor(position.z - self.point.z)
                     mat = self.materials[(dx + dz) % 2]
 
-                intersect = hc.Intersection(t, self.normal, position, mat)
+                intersect = Intersection(t, self.normal, position, mat, self)
                 return intersect
         return None
+
+    def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        denom = glm.dot(ray.direction, self.normal)
+        if abs(denom) > epsilon:
+            t = glm.dot(self.point - ray.origin, self.normal) / denom
+            return self.shadow_epsilon < t < t_max
+
+    def __repr__(self):
+        return f"Plane({self.name}, point: {self.point}, normal: {self.normal})"
 
 
 class AABB(Geometry):
@@ -77,7 +145,7 @@ class AABB(Geometry):
         self.minpos = center - halfside
         self.maxpos = center + halfside
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
+    def intersect(self, ray: hc.Ray) -> Intersection:
         if ray.direction.x == 0:
             if not (self.minpos.x < ray.origin.x < self.maxpos.x):
                 return None
@@ -129,9 +197,50 @@ class AABB(Geometry):
         position = ray.getPoint(time)
         mat = self.materials[0]
 
-        intersect = hc.Intersection(time, normal, position, mat)
+        intersect = Intersection(time, normal, position, mat, self)
 
         return intersect
+
+    def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        if ray.direction.x == 0:
+            if not (self.minpos.x < ray.origin.x < self.maxpos.x):
+                return None
+            x_interval = hc.AAInterval(float("-inf"), float("inf"), "x")
+        else:
+            t_x_1 = (self.minpos.x - ray.origin.x) / ray.direction.x
+            t_x_2 = (self.maxpos.x - ray.origin.x) / ray.direction.x
+            x_interval = hc.AAInterval(t_x_1, t_x_2, "x")
+
+        if ray.direction.y == 0:
+            if not (self.minpos.y < ray.origin.y < self.maxpos.y):
+                return None
+            y_interval = hc.AAInterval(float("-inf"), float("inf"), "y")
+        else:
+            t_y_1 = (self.minpos.y - ray.origin.y) / ray.direction.y
+            t_y_2 = (self.maxpos.y - ray.origin.y) / ray.direction.y
+            y_interval = hc.AAInterval(t_y_1, t_y_2, "y")
+
+        if ray.direction.z == 0:
+            if not (self.minpos.z < ray.origin.z < self.maxpos.z):
+                return None
+            z_interval = hc.AAInterval(float("-inf"), float("inf"), "z")
+        else:
+            t_z_1 = (self.minpos.z - ray.origin.z) / ray.direction.z
+            t_z_2 = (self.maxpos.z - ray.origin.z) / ray.direction.z
+            z_interval = hc.AAInterval(t_z_1, t_z_2, "z")
+
+        intersected = (max(x_interval, y_interval, z_interval, key=lambda x: x.start),
+                       min(x_interval, y_interval, z_interval, key=lambda x: x.end))
+
+        if intersected[0].start > intersected[1].end:
+            return False
+
+        time = intersected[0].start
+
+        return self.shadow_epsilon < time < t_max
+
+    def __repr__(self):
+        return f"AABB({self.name}, minpos: {self.minpos}, maxpos: {self.maxpos})"
 
 
 class Mesh(Geometry):
@@ -146,9 +255,15 @@ class Mesh(Geometry):
         for n in norms:
             self.norms.append(glm.vec3(n[0], n[1], n[2]))
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
+    def intersect(self, ray: hc.Ray) -> Intersection:
         pass
         # TODO: Create intersect code for Mesh
+
+    def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        return False
+
+    def __repr__(self):
+        return f"Mesh({self.name})"
 
 
 class Hierarchy(Geometry):
@@ -169,7 +284,44 @@ class Hierarchy(Geometry):
         self.M = glm.scale(self.M, s)
         self.Minv = glm.inverse(self.M)
         self.t = t
+        self.r = r
+        self.s = s
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
-        # TODO: Create intersect code for Hierarchy
+    def intersect(self, ray: hc.Ray) -> Intersection:
+        m_inv_o = glm.vec3(self.Minv * glm.vec4(ray.origin, 1))
+        m_inv_d = glm.vec3(self.Minv * glm.vec4(ray.direction, 0))
+        m_ray = hc.Ray(m_inv_o, m_inv_d)
+
+        intersections = []
+        for child in self.children:
+            intersect = child.intersect(m_ray)
+            if intersect is not None and intersect.time < float('inf'):
+                intersections.append(intersect)
+
+        if len(intersections) == 0:
+            return None
+
+        intersections.sort(key=lambda x: x.time)
+        first_intersect = intersections[0]
+
+        if first_intersect.mat is None:
+            first_intersect.mat = self.materials[0]
+
+        first_intersect.position = (self.M * glm.vec4(first_intersect.position, 1)).xyz
+        first_intersect.normal = glm.normalize(glm.transpose(self.Minv) * glm.vec4(first_intersect.normal, 0)).xyz
+
+        return first_intersect
+
+    def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        m_inv_o = glm.vec3(self.Minv * glm.vec4(ray.origin, 1))
+        m_inv_d = glm.vec3(self.Minv * glm.vec4(ray.direction, 0))
+        m_ray = hc.Ray(m_inv_o, m_inv_d)
+
+        for child in self.children:
+            if child.shadow_intersect(m_ray, t_max):
+                return True
+
+        return False
+
+    def __repr__(self):
+        return f"Hierarchy({self.name}, t: {self.t}, r: {self.r}, s: {self.s}, children: {len(self.children)})"
