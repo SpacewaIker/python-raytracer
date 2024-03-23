@@ -47,22 +47,27 @@ class Scene:
         x = vc.left + 0.5 * dx
         dy = (vc.top - vc.bottom) / self.height
 
-        progress = tqdm(total=self.width * self.height, desc="Rendering")
+        progress = tqdm(total=self.width * self.height * self.samples, desc="Rendering")
 
         for i in range(self.width):
             y = vc.bottom + 0.5 * dy
 
             for j in range(self.height):
-                # if i == 127 and j == 96:
-                #     breakpoint()
+                colour = glm.vec3(0, 0, 0)
 
-                origin = self.position
-                light_dir = glm.normalize(x * vc.u + y * vc.v - vc.d * vc.w)
-                ray = hc.Ray(origin, light_dir)
+                for ray_origin in self._sunflower_spread(self.samples, self.position, 2 * (dx + dy)):
+                    light_dir = glm.normalize(x * vc.u + y * vc.v - vc.d * vc.w)
+                    ray = hc.Ray(ray_origin, light_dir)
 
-                self.cast_ray(ray, image, i, j)
+                    if self.jitter:
+                        noise = 10 ** (-3) * glm.normalize(glm.vec3(np.random.rand(), np.random.rand(), np.random.rand()))
+                        ray.direction = glm.normalize(ray.direction + noise)
 
-                progress.update(1)
+                    colour += self.cast_ray(ray)
+
+                    progress.update(1)
+
+                image[i, j] = colour / self.samples
 
                 y += dy
 
@@ -70,9 +75,7 @@ class Scene:
 
         return image
 
-    def cast_ray(self, ray: hc.Ray, image, i: int, j: int):
-        colour = glm.vec3(0, 0, 0)
-
+    def cast_ray(self, ray: hc.Ray) -> glm.vec3:
         # get all intesections with all objects
         intersections = []
         for obj in self.objects:
@@ -81,10 +84,7 @@ class Scene:
                 intersections.append(intersect)
 
         if len(intersections) == 0:
-            image[i, j, 0] = 0.0
-            image[i, j, 1] = 0.0
-            image[i, j, 2] = 0.0
-            return
+            return glm.vec3(0, 0, 0)
 
         # get first intersection
         first_intersect = min(intersections, key=lambda x: x.time)
@@ -128,6 +128,25 @@ class Scene:
 
             colour += light.colour * (lambert + specular)
 
-        image[i, j, 0] = max(0.0, min(1.0, colour.x))
-        image[i, j, 1] = max(0.0, min(1.0, colour.y))
-        image[i, j, 2] = max(0.0, min(1.0, colour.z))
+        cx = max(0.0, min(1.0, colour.x))
+        cy = max(0.0, min(1.0, colour.y))
+        cz = max(0.0, min(1.0, colour.z))
+        return glm.vec3(cx, cy, cz)
+
+    phi = (1 + np.sqrt(5)) / 2
+
+    def _sunflower_spread(self, num_points: int, origin: glm.vec3, radius: float) -> list[glm.vec3]:
+        points = []
+        angle_stride = 2 * np.pi / self.phi
+
+        for k in range(1, num_points + 1):
+            if k > num_points:
+                r = radius
+            else:
+                r = radius * np.sqrt(k - 0.5) / np.sqrt(num_points - 0.5)
+            theta = k * angle_stride
+            x = r * np.cos(theta) + origin.x
+            y = r * np.sin(theta) + origin.y
+            points.append(glm.vec3(x, y, origin.z))
+
+        return points
