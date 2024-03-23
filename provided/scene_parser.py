@@ -159,7 +159,10 @@ def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_mats: list[hc.M
     elif g_type == "mesh":
         g_path = geometry["filepath"]
         g_scale = geometry["scale"]
-        objects.append(geom.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path))
+        g_flat_shaded = geometry["flat_shaded"]
+        if g_flat_shaded is None:
+            g_flat_shaded = False
+        objects.append(geom.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path, g_flat_shaded))
     else:
         return False
     return True

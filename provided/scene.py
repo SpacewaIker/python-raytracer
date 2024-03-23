@@ -87,8 +87,7 @@ class Scene:
             return
 
         # get first intersection
-        intersections.sort(key=lambda x: x.time)
-        first_intersect = intersections[0]
+        first_intersect = min(intersections, key=lambda x: x.time)
 
         # lighting
         colour = self.ambient * first_intersect.mat.diffuse
