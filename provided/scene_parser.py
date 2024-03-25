@@ -10,7 +10,10 @@ import glm
 
 
 def populateVec(array: list):
-    return glm.vec3(array[0], array[1], array[2])
+    if len(array) == 3:
+        return glm.vec3(array[0], array[1], array[2])
+    elif len(array) == 4:
+        return glm.vec4(array[0], array[1], array[2], array[3])
 
 
 def load_scene(infile):
@@ -74,12 +77,22 @@ def load_scene(infile):
     # Loading materials
     materials = []
     for material in data["materials"]:
-        mat_diffuse = populateVec(material["diffuse"])
-        mat_specular = populateVec(material["specular"])
-        mat_hardness = material["hardness"]
         mat_name = material["name"]
         mat_id = material["ID"]
-        materials.append(hc.Material(mat_name, mat_specular, mat_diffuse, mat_hardness, mat_id))
+
+        try:
+            mat_type = material["type"]
+        except KeyError:
+            mat_type = "diffuse"
+
+        if mat_type == "diffuse":
+            mat_diffuse = populateVec(material["diffuse"])
+            mat_specular = populateVec(material["specular"])
+            mat_hardness = material["hardness"]
+            materials.append(hc.Material(mat_name, mat_specular, mat_diffuse, mat_hardness, mat_id, mat_type))
+        elif mat_type == "mirror":
+            zero = glm.vec3(0, 0, 0)
+            materials.append(hc.Material(mat_name, zero, zero, 0.0, mat_id, mat_type))
 
     # Loading geometry
     objects = []
@@ -159,8 +172,10 @@ def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_mats: list[hc.M
     elif g_type == "mesh":
         g_path = geometry["filepath"]
         g_scale = geometry["scale"]
-        g_flat_shaded = geometry["flat_shaded"]
-        if g_flat_shaded is None:
+
+        try:
+            g_flat_shaded = geometry["flat_shaded"]
+        except KeyError:
             g_flat_shaded = False
         objects.append(geom.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path, g_flat_shaded))
     else:

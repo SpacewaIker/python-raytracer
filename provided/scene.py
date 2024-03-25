@@ -75,7 +75,10 @@ class Scene:
 
         return image
 
-    def cast_ray(self, ray: hc.Ray) -> glm.vec3:
+    def cast_ray(self, ray: hc.Ray, max_recursion: int = 10) -> glm.vec3:
+        if max_recursion == 0:
+            return glm.vec3(0, 0, 0)
+
         # get all intesections with all objects
         intersections = []
         for obj in self.objects:
@@ -88,6 +91,17 @@ class Scene:
 
         # get first intersection
         first_intersect = min(intersections, key=lambda x: x.time)
+
+        # check for types of materials
+        if first_intersect.mat.mat_type == "mirror":
+            # reflect
+            reflect_dir = glm.reflect(ray.direction, first_intersect.normal)
+            reflect_pos = first_intersect.position + 0.001 * reflect_dir
+            reflect_ray = hc.Ray(reflect_pos, reflect_dir)
+            reflection = self.cast_ray(reflect_ray, max_recursion - 1)
+            return reflection
+
+        # else, diffuse
 
         # lighting
         colour = self.ambient * first_intersect.mat.diffuse
@@ -136,6 +150,10 @@ class Scene:
     phi = (1 + np.sqrt(5)) / 2
 
     def _sunflower_spread(self, num_points: int, origin: glm.vec3, radius: float) -> list[glm.vec3]:
+        """
+        Adapted from:
+        https://stackoverflow.com/questions/28567166/uniformly-distribute-x-points-inside-a-circle
+        """
         points = []
         angle_stride = 2 * np.pi / self.phi
 

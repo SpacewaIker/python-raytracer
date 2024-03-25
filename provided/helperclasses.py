@@ -21,12 +21,13 @@ class Ray:
 
 
 class Material:
-    def __init__(self, name: str, specular: glm.vec3, diffuse: glm.vec3, hardness: float, ID: int):
+    def __init__(self, name: str, specular: glm.vec3, diffuse: glm.vec3, hardness: float, ID: int, mat_type: str = "diffuse"):
         self.name = name
         self.specular = specular
         self.diffuse = diffuse
         self.hardness = hardness
         self.ID = ID
+        self.mat_type = mat_type
 
     @staticmethod
     def default():
@@ -36,7 +37,7 @@ class Material:
         return Material(name, specular, diffuse, hardness, ID)
 
     def __repr__(self):
-        return f"Material({self.name}, specular: {self.specular}, diffuse: {self.diffuse}, hardness: {self.hardness}, ID: {self.ID})"
+        return f"Material({self.name}, type: {self.mat_type}, specular: {self.specular}, diffuse: {self.diffuse}, hardness: {self.hardness}, ID: {self.ID})"
 
 
 class Light:

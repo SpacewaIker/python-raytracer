@@ -71,6 +71,10 @@ class Sphere(Geometry):
         if discriminant < 0:
             return None
         t = (-b - math.sqrt(discriminant)) / (2 * a)
+
+        if t < 0:
+            return None
+
         position = ray.getPoint(t)
         normal = glm.normalize(position - self.center)
 
@@ -182,6 +186,9 @@ class AABB(Geometry):
             return None
 
         time = intersected[0].start
+
+        if time < 0:
+            return None
 
         if intersected[0].label == "x" and ray.direction.x < 0:
             normal = glm.vec3(1, 0, 0)
