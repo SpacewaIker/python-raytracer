@@ -60,8 +60,8 @@ class Scene:
                     ray = hc.Ray(ray_origin, light_dir)
 
                     if self.jitter:
-                        noise = 10 ** (-3) * glm.normalize(glm.vec3(np.random.rand(), np.random.rand(), np.random.rand()))
-                        ray.direction = glm.normalize(ray.direction + noise)
+                        noise = 0.1 * (dx + dy) * glm.normalize(glm.vec3(np.random.rand(), np.random.rand(), np.random.rand()))
+                        ray.origin += noise
 
                     colour += self.cast_ray(ray)
 
