@@ -2,6 +2,8 @@ import copy
 import json
 import helperclasses as hc
 import geometry as geom
+import geometry.simple_geometry as geom_sg
+import geometry.mesh as geom_mesh
 import scene
 import glm
 
@@ -161,17 +163,17 @@ def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_mats: list[hc.M
     # Returns True if a shape was added, False otherwise
     if g_type == "sphere":
         g_radius = geometry["radius"]
-        objects.append(geom.Sphere(g_name, g_type, g_mats, g_pos, g_radius))
+        objects.append(geom_sg.Sphere(g_name, g_type, g_mats, g_pos, g_radius))
     elif g_type == "plane":
         g_normal = populateVec(geometry["normal"])
-        objects.append(geom.Plane(g_name, g_type, g_mats, g_pos, g_normal))
+        objects.append(geom_sg.Plane(g_name, g_type, g_mats, g_pos, g_normal))
     elif g_type == "box":
         try:
             g_size = populateVec(geometry["size"])
-            objects.append(geom.AABB(g_name, g_type, g_mats, g_pos, g_size))
+            objects.append(geom_sg.AABB(g_name, g_type, g_mats, g_pos, g_size))
         except KeyError:
             # Boxes can also be directly declared with a min and max position
-            box = geom.AABB(g_name, g_type, g_mats, g_pos, glm.vec3(0, 0, 0))
+            box = geom_sg.AABB(g_name, g_type, g_mats, g_pos, glm.vec3(0, 0, 0))
             box.minpos = populateVec(geometry["min"])
             box.maxpos = populateVec(geometry["max"])
             objects.append(box)
@@ -183,7 +185,7 @@ def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_mats: list[hc.M
             g_flat_shaded = geometry["flat_shaded"]
         except KeyError:
             g_flat_shaded = False
-        objects.append(geom.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path, g_flat_shaded))
+        objects.append(geom_mesh.Mesh(g_name, g_type, g_mats, g_pos, g_scale, g_path, g_flat_shaded))
     else:
         return False
     return True
