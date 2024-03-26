@@ -52,6 +52,83 @@ class Geometry:
         return f"Geometry({self.name}, type: {self.gtype})"
 
 
+class BoundingSphere():
+    def __init__(self, center: glm.vec3, radius: float, geometry: Geometry):
+        self.center = center
+        self.radius = radius
+        self.geometry = geometry
+
+    def intersect(self, ray: hc.Ray) -> bool:
+        a = glm.dot(ray.direction, ray.direction)  # a = d . d
+        b = 2 * glm.dot(ray.direction, ray.origin -
+                        self.center)  # b = 2 (d . p - d . c)
+        c = glm.dot(ray.origin - self.center, ray.origin - self.center) - \
+            self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
+
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            return False
+
+        t = (-b - math.sqrt(discriminant)) / (2 * a)
+        if t > 0:
+            return True
+
+        t = (-b + math.sqrt(discriminant)) / (2 * a)
+        if t > 0:
+            return True
+
+        return False
+
+    def __repr__(self):
+        return f"BoundingSphere({self.geometry.name})"
+
+
+class BoundingAABB():
+    def __init__(self, minpos: glm.vec3, maxpos: glm.vec3, geometry: Geometry):
+        # dimension holds information for length of each size of the box
+        self.minpos = minpos
+        self.maxpos = maxpos
+
+    def intersect(self, ray: hc.Ray) -> bool:
+        if ray.direction.x == 0:
+            if not (self.minpos.x < ray.origin.x < self.maxpos.x):
+                return None
+            x_interval = hc.AAInterval(float("-inf"), float("inf"), "x")
+        else:
+            t_x_1 = (self.minpos.x - ray.origin.x) / ray.direction.x
+            t_x_2 = (self.maxpos.x - ray.origin.x) / ray.direction.x
+            x_interval = hc.AAInterval(t_x_1, t_x_2, "x")
+
+        if ray.direction.y == 0:
+            if not (self.minpos.y < ray.origin.y < self.maxpos.y):
+                return None
+            y_interval = hc.AAInterval(float("-inf"), float("inf"), "y")
+        else:
+            t_y_1 = (self.minpos.y - ray.origin.y) / ray.direction.y
+            t_y_2 = (self.maxpos.y - ray.origin.y) / ray.direction.y
+            y_interval = hc.AAInterval(t_y_1, t_y_2, "y")
+
+        if ray.direction.z == 0:
+            if not (self.minpos.z < ray.origin.z < self.maxpos.z):
+                return None
+            z_interval = hc.AAInterval(float("-inf"), float("inf"), "z")
+        else:
+            t_z_1 = (self.minpos.z - ray.origin.z) / ray.direction.z
+            t_z_2 = (self.maxpos.z - ray.origin.z) / ray.direction.z
+            z_interval = hc.AAInterval(t_z_1, t_z_2, "z")
+
+        intersected = (max(x_interval, y_interval, z_interval, key=lambda x: x.start),
+                       min(x_interval, y_interval, z_interval, key=lambda x: x.end))
+
+        if intersected[0].start > intersected[1].end or intersected[0].start < 0:
+            return False
+
+        return True
+
+    def __repr__(self):
+        return f"BoundingAABB({self.name}, minpos: {self.minpos}, maxpos: {self.maxpos})"
+
+
 class Sphere(Geometry):
     shadow_epsilon = 10 ** (-4)
 
@@ -182,13 +259,10 @@ class AABB(Geometry):
         intersected = (max(x_interval, y_interval, z_interval, key=lambda x: x.start),
                        min(x_interval, y_interval, z_interval, key=lambda x: x.end))
 
-        if intersected[0].start > intersected[1].end:
+        if intersected[0].start > intersected[1].end or intersected[0].start < 0:
             return None
 
         time = intersected[0].start
-
-        if time < 0:
-            return None
 
         if intersected[0].label == "x" and ray.direction.x < 0:
             normal = glm.vec3(1, 0, 0)
@@ -267,6 +341,28 @@ class Mesh(Geometry):
             self._compute_normals()
         self.flat_shaded = flat_shaded
 
+        max_x = max([v.x for v in self.verts])
+        min_x = min([v.x for v in self.verts])
+        max_y = max([v.y for v in self.verts])
+        min_y = min([v.y for v in self.verts])
+        max_z = max([v.z for v in self.verts])
+        min_z = min([v.z for v in self.verts])
+
+        avg_x = (max_x + min_x) / 2
+        avg_y = (max_y + min_y) / 2
+        avg_z = (max_z + min_z) / 2
+        center = glm.vec3(avg_x, avg_y, avg_z)
+
+        max_dist = max([glm.length(v - center) for v in self.verts])
+
+        aabb_volume = (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
+        sphere_volume = 4 / 3 * math.pi * max_dist ** 3
+
+        if aabb_volume < sphere_volume:
+            self.bounding_volume = BoundingAABB(glm.vec3(min_x, min_y, min_z), glm.vec3(max_x, max_y, max_z), None)
+        else:
+            self.bounding_volume = BoundingSphere(center, max_dist, None)
+
     def _compute_normals(self):
         normals = defaultdict(glm.vec3)
         for face in self.faces:
@@ -287,6 +383,9 @@ class Mesh(Geometry):
         self.norms = [glm.normalize(normals[i]) for i in range(len(self.verts))]
 
     def intersect(self, ray: hc.Ray) -> Intersection:
+        if not self.bounding_volume.intersect(ray):
+            return None
+
         intersections = []
         for face in self.faces:
             v0 = self.verts[face[0]]
@@ -336,6 +435,9 @@ class Mesh(Geometry):
         return min(intersections, key=lambda x: x.time)
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        if not self.bounding_volume.intersect(ray):
+            return False
+
         for face in self.faces:
             v0 = self.verts[face[0]]
             v1 = self.verts[face[1]]

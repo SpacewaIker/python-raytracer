@@ -28,6 +28,7 @@ class Material:
         self.hardness = hardness
         self.ID = ID
         self.mat_type = mat_type
+        self.refr_index = 1.0
 
     @staticmethod
     def default():

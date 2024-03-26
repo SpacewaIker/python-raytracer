@@ -75,7 +75,7 @@ class Scene:
 
         return image
 
-    def cast_ray(self, ray: hc.Ray, max_recursion: int = 10) -> glm.vec3:
+    def cast_ray(self, ray: hc.Ray, max_recursion: int = 10, in_shape=False) -> glm.vec3:
         if max_recursion == 0:
             return glm.vec3(0, 0, 0)
 
@@ -100,6 +100,17 @@ class Scene:
             reflect_ray = hc.Ray(reflect_pos, reflect_dir)
             reflection = self.cast_ray(reflect_ray, max_recursion - 1)
             return reflection
+        elif first_intersect.mat.mat_type == "refractive":
+            if in_shape:
+                eta = first_intersect.mat.refr_index
+            else:
+                eta = 1.0 / first_intersect.mat.refr_index
+
+            refract_dir = glm.refract(ray.direction, first_intersect.normal, eta)
+            refract_pos = first_intersect.position + 0.001 * refract_dir
+            refract_ray = hc.Ray(refract_pos, refract_dir)
+            refraction = self.cast_ray(refract_ray, max_recursion - 1, not in_shape)
+            return refraction
 
         # else, diffuse
 

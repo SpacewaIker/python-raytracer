@@ -93,6 +93,12 @@ def load_scene(infile):
         elif mat_type == "mirror":
             zero = glm.vec3(0, 0, 0)
             materials.append(hc.Material(mat_name, zero, zero, 0.0, mat_id, mat_type))
+        elif mat_type == "refractive":
+            zero = glm.vec3(0, 0, 0)
+            refr_index = material["refr_index"]
+            material = hc.Material(mat_name, zero, zero, 0.0, mat_id, mat_type)
+            material.refr_index = refr_index
+            materials.append(material)
 
     # Loading geometry
     objects = []
