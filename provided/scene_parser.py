@@ -54,6 +54,22 @@ def load_scene(infile):
         jitter = False
         samples = 1
 
+    # loading depth of field options
+    try:
+        focal_length = data["DOF"]["focal_length"]
+        aperture = data["DOF"]["aperture"]
+        dof_samples = data["DOF"]["samples"]
+    except KeyError:
+        print("No Depth of Field options found, setting to default")
+        focal_length = 1
+        aperture = 0
+        dof_samples = 1
+
+    vc = hc.ViewportCamera() \
+        .set_viewport(width, height) \
+        .set_camera(cam_pos, cam_lookat, cam_up, cam_fov) \
+        .set_lens(focal_length, aperture, dof_samples)
+
     # Loading scene lights
     lights = []
     try:
@@ -152,8 +168,7 @@ def load_scene(infile):
             continue
 
     print("Parsing complete")
-    return scene.Scene(width, height, jitter, samples,  # General settings
-                       cam_pos, cam_lookat, cam_up, cam_fov,  # Camera settings
+    return scene.Scene(vc, jitter, samples,  # General settings
                        ambient, lights,  # Light settings
                        materials, objects)  # General settings
 

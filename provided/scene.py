@@ -11,63 +11,56 @@ from tqdm import tqdm
 class Scene:
 
     def __init__(self,
-                 width: int,
-                 height: int,
+                 vc: hc.ViewportCamera,
                  jitter: bool,
                  samples: int,
-                 position: glm.vec3,
-                 lookat: glm.vec3,
-                 up: glm.vec3,
-                 fov: float,
                  ambient: glm.vec3,
                  lights: list[hc.Light],
                  materials: list[hc.Material],
                  objects: list[geom.Geometry]
                  ):
-        self.width = width  # width of image
-        self.height = height  # height of image
-        self.aspect = width / height  # aspect ratio
+        self.vc = vc  # viewport camera
         self.jitter = jitter  # should rays be jittered
         self.samples = samples  # number of rays per pixel
-        self.position = position  # camera position in 3D
-        self.lookat = lookat  # camera look at vector
-        self.up = up  # camera up position
-        self.fov = fov  # camera field of view
         self.ambient = ambient  # ambient lighting
         self.lights = lights  # all lights in the scene
         self.materials = materials  # all materials of objects in the scene
         self.objects = objects  # all objects in the scene
 
     def render(self):
-        vc = hc.ViewportCamera(self.position, self.lookat, self.up, self.fov, self.aspect)
+        image = np.zeros((self.vc.width, self.vc.height, 3))
 
-        image = np.zeros((self.width, self.height, 3))
+        dx = (self.vc.right - self.vc.left) / self.vc.width
+        x = self.vc.left + 0.5 * dx
+        dy = (self.vc.top - self.vc.bottom) / self.vc.height
 
-        dx = (vc.right - vc.left) / self.width
-        x = vc.left + 0.5 * dx
-        dy = (vc.top - vc.bottom) / self.height
+        progress = tqdm(total=self.vc.width * self.vc.height * self.samples * self.vc.dof_samples, desc="Rendering")
 
-        progress = tqdm(total=self.width * self.height * self.samples, desc="Rendering")
+        for i in range(self.vc.width):
+            y = self.vc.bottom + 0.5 * dy
 
-        for i in range(self.width):
-            y = vc.bottom + 0.5 * dy
-
-            for j in range(self.height):
+            for j in range(self.vc.height):
                 colour = glm.vec3(0, 0, 0)
 
-                for ray_origin in self._sunflower_spread(self.samples, self.position, 2 * (dx + dy)):
-                    light_dir = glm.normalize(x * vc.u + y * vc.v - vc.d * vc.w)
-                    ray = hc.Ray(ray_origin, light_dir)
+                base_ray_origin = self.vc.position
+                base_ray_direction = glm.normalize(x * self.vc.u + y * self.vc.v - self.vc.d * self.vc.w)
+                focal_point = base_ray_origin + self.vc.focal_length * base_ray_direction
 
-                    if self.jitter:
-                        noise = 0.1 * (dx + dy) * glm.normalize(glm.vec3(np.random.rand(), np.random.rand(), np.random.rand()))
-                        ray.origin += noise
+                for dof_origin in self._sunflower_spread(self.vc.dof_samples, base_ray_origin, self.vc.aperture):
+                    dof_direction = glm.normalize(focal_point - dof_origin)
 
-                    colour += self.cast_ray(ray)
+                    for ray_origin in self._sunflower_spread(self.samples, dof_origin, 2 * (dx + dy)):
+                        ray = hc.Ray(ray_origin, dof_direction)
 
-                    progress.update(1)
+                        if self.jitter:
+                            noise = 0.1 * (dx + dy) * glm.normalize(glm.vec3(np.random.rand(), np.random.rand(), np.random.rand()))
+                            ray.origin += noise
 
-                image[i, j] = colour / self.samples
+                        colour += self.cast_ray(ray)
+
+                        progress.update(1)
+
+                image[i, j] = colour / (self.samples * self.vc.dof_samples)
 
                 y += dy
 

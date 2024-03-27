@@ -61,14 +61,35 @@ class AAInterval:
 
 
 class ViewportCamera:
-    def __init__(self, position: glm.vec3, lookat: glm.vec3, up: glm.vec3, fov: float, aspect: float):
+    def __init__(self):
+        self.focal_length = 1.0
+        self.aperture = 0.0
+        self.dof_samples = 1
+
+    def set_viewport(self, width: int, height: int) -> "ViewportCamera":
+        self.width = width
+        self.height = height
+        self.aspect = width / height
+        return self
+
+    def set_camera(self, position: glm.vec3, lookat: glm.vec3, up: glm.vec3, fov: float) -> "ViewportCamera":
         cam_dir = position - lookat
+        self.position = position
         self.d = 1.0
         self.top = self.d * glm.tan(glm.radians(fov / 2))
-        self.right = aspect * self.top
+        self.right = self.aspect * self.top
         self.bottom = -self.top
         self.left = -self.right
 
         self.w = glm.normalize(cam_dir)
         self.u = glm.normalize(glm.cross(up, self.w))
         self.v = glm.cross(self.w, self.u)
+
+        return self
+
+    def set_lens(self, focal_length: float, aperture: float, dof_samples: int) -> "ViewportCamera":
+        self.focal_length = focal_length
+        self.aperture = aperture
+        self.dof_samples = dof_samples
+
+        return self
