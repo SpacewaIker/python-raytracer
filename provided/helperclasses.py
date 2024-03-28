@@ -93,3 +93,10 @@ class ViewportCamera:
         self.dof_samples = dof_samples
 
         return self
+
+    def set_motion(self, time: float, motion_samples: int, motion_final: int) -> "ViewportCamera":
+        dt = time / motion_samples
+        self.motion_times = [dt * i for i in range(motion_samples)]
+        self.motion_times += [time] * motion_final
+
+        return self

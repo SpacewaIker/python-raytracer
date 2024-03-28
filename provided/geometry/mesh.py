@@ -10,8 +10,8 @@ import numpy as np
 
 class Mesh(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], translate: glm.vec3, scale: float,
-                 filepath: str, flat_shaded: bool = False):
-        super().__init__(name, gtype, materials)
+                 filepath: str, flat_shaded: bool = False, speed=None):
+        super().__init__(name, gtype, materials, speed)
         verts, _, norms, self.faces, _, _ = igl.read_obj(filepath)
         self.verts = []
         self.norms = []

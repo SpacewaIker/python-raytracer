@@ -7,17 +7,20 @@ import math
 class Sphere(Geometry):
     shadow_epsilon = 10 ** (-4)
 
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, radius: float):
-        super().__init__(name, gtype, materials)
+    def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, radius: float, speed):
+        super().__init__(name, gtype, materials, speed)
         self.center = center
         self.radius = radius
 
     def intersect(self, ray: hc.Ray) -> list[Intersection]:
+        if self.speed is not None:
+            center = self.center + self.speed * self.scene.current_time
+        else:
+            center = self.center
+
         a = glm.dot(ray.direction, ray.direction)  # a = d . d
-        b = 2 * glm.dot(ray.direction, ray.origin -
-                        self.center)  # b = 2 (d . p - d . c)
-        c = glm.dot(ray.origin - self.center, ray.origin - self.center) - \
-            self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
+        b = 2 * glm.dot(ray.direction, ray.origin - center)  # b = 2 (d . p - d . c)
+        c = glm.dot(ray.origin - center, ray.origin - center) - self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
 
         discriminant = b ** 2 - 4 * a * c
         if discriminant < 0:
@@ -29,17 +32,20 @@ class Sphere(Geometry):
         for t in [t1, t2]:
             if t > 0:
                 position = ray.getPoint(t)
-                normal = glm.normalize(position - self.center)
+                normal = glm.normalize(position - center)
                 intersections.append(Intersection(t, normal, position, self.materials[0], self))
 
         return intersections
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        if self.speed is not None:
+            center = self.center + self.speed * self.scene.current_time
+        else:
+            center = self.center
+
         a = glm.dot(ray.direction, ray.direction)  # a = d . d
-        b = 2 * glm.dot(ray.direction, ray.origin -
-                        self.center)  # b = 2 (d . p - d . c)
-        c = glm.dot(ray.origin - self.center, ray.origin - self.center) - \
-            self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
+        b = 2 * glm.dot(ray.direction, ray.origin - center)  # b = 2 (d . p - d . c)
+        c = glm.dot(ray.origin - center, ray.origin - center) - self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
 
         discriminant = b ** 2 - 4 * a * c
         if discriminant < 0:
@@ -58,30 +64,40 @@ class Sphere(Geometry):
         return False
 
     def is_inside(self, point: glm.vec3) -> bool:
-        return glm.length(point - self.center) < self.radius
+        if self.speed is not None:
+            center = self.center + self.speed * self.scene.current_time
+        else:
+            center = self.center
+
+        return glm.length(point - center) < self.radius
 
     def __repr__(self):
         return f"Sphere({self.name}, center: {self.center}, radius: {self.radius})"
 
 
 class Plane(Geometry):
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], point: glm.vec3, normal: glm.vec3):
-        super().__init__(name, gtype, materials)
+    def __init__(self, name: str, gtype: str, materials: list[hc.Material], point: glm.vec3, normal: glm.vec3, speed):
+        super().__init__(name, gtype, materials, speed)
         self.point = point
         self.normal = normal
 
     def intersect(self, ray: hc.Ray) -> list[Intersection]:
+        if self.speed is not None:
+            point = self.point + self.speed * self.scene.current_time
+        else:
+            point = self.point
+
         denom = glm.dot(ray.direction, self.normal)
         if abs(denom) > epsilon:
-            t = glm.dot(self.point - ray.origin, self.normal) / denom
+            t = glm.dot(point - ray.origin, self.normal) / denom
             if t >= 0:
                 position = ray.getPoint(t)
 
                 if len(self.materials) == 1:
                     mat = self.materials[0]
                 else:
-                    dx = math.floor(position.x - self.point.x)
-                    dz = math.floor(position.z - self.point.z)
+                    dx = math.floor(position.x - point.x)
+                    dz = math.floor(position.z - point.z)
                     mat = self.materials[(dx + dz) % 2]
 
                 intersect = Intersection(t, self.normal, position, mat, self)
@@ -89,16 +105,26 @@ class Plane(Geometry):
         return []
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        if self.speed is not None:
+            point = self.point + self.speed * self.scene.current_time
+        else:
+            point = self.point
+
         denom = glm.dot(ray.direction, self.normal)
         if abs(denom) > epsilon:
-            t = glm.dot(self.point - ray.origin, self.normal) / denom
+            t = glm.dot(point - ray.origin, self.normal) / denom
             return self.shadow_epsilon < t < t_max
 
     def get_material(self, point: glm.vec3) -> hc.Material:
+        if self.speed is not None:
+            point = self.point + self.speed * self.scene.current_time
+        else:
+            point = self.point
+
         if len(self.materials) == 1:
             return self.materials[0]
-        dx = math.floor(point.x - self.point.x)
-        dz = math.floor(point.z - self.point.z)
+        dx = math.floor(point.x - point.x)
+        dz = math.floor(point.z - point.z)
         return self.materials[(dx + dz) % 2]
 
     def __repr__(self):
@@ -106,39 +132,46 @@ class Plane(Geometry):
 
 
 class AABB(Geometry):
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, dimension: glm.vec3):
+    def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, dimension: glm.vec3, speed):
         # dimension holds information for length of each size of the box
-        super().__init__(name, gtype, materials)
+        super().__init__(name, gtype, materials, speed)
         halfside = dimension / 2
         self.minpos = center - halfside
         self.maxpos = center + halfside
 
     def intersect(self, ray: hc.Ray) -> list[Intersection]:
+        if self.speed is not None:
+            minpos = self.minpos + self.speed * self.scene.current_time
+            maxpos = self.maxpos + self.speed * self.scene.current_time
+        else:
+            minpos = self.minpos
+            maxpos = self.maxpos
+
         if ray.direction.x == 0:
-            if not (self.minpos.x < ray.origin.x < self.maxpos.x):
+            if not (minpos.x < ray.origin.x < maxpos.x):
                 return []
             x_interval = hc.AAInterval(float("-inf"), float("inf"), "x")
         else:
-            t_x_1 = (self.minpos.x - ray.origin.x) / ray.direction.x
-            t_x_2 = (self.maxpos.x - ray.origin.x) / ray.direction.x
+            t_x_1 = (minpos.x - ray.origin.x) / ray.direction.x
+            t_x_2 = (maxpos.x - ray.origin.x) / ray.direction.x
             x_interval = hc.AAInterval(t_x_1, t_x_2, "x")
 
         if ray.direction.y == 0:
-            if not (self.minpos.y < ray.origin.y < self.maxpos.y):
+            if not (minpos.y < ray.origin.y < maxpos.y):
                 return []
             y_interval = hc.AAInterval(float("-inf"), float("inf"), "y")
         else:
-            t_y_1 = (self.minpos.y - ray.origin.y) / ray.direction.y
-            t_y_2 = (self.maxpos.y - ray.origin.y) / ray.direction.y
+            t_y_1 = (minpos.y - ray.origin.y) / ray.direction.y
+            t_y_2 = (maxpos.y - ray.origin.y) / ray.direction.y
             y_interval = hc.AAInterval(t_y_1, t_y_2, "y")
 
         if ray.direction.z == 0:
-            if not (self.minpos.z < ray.origin.z < self.maxpos.z):
+            if not (minpos.z < ray.origin.z < maxpos.z):
                 return []
             z_interval = hc.AAInterval(float("-inf"), float("inf"), "z")
         else:
-            t_z_1 = (self.minpos.z - ray.origin.z) / ray.direction.z
-            t_z_2 = (self.maxpos.z - ray.origin.z) / ray.direction.z
+            t_z_1 = (minpos.z - ray.origin.z) / ray.direction.z
+            t_z_2 = (maxpos.z - ray.origin.z) / ray.direction.z
             z_interval = hc.AAInterval(t_z_1, t_z_2, "z")
 
         intersected = (max(x_interval, y_interval, z_interval, key=lambda x: x.start),
@@ -170,31 +203,38 @@ class AABB(Geometry):
         return intersections
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
+        if self.speed is not None:
+            minpos = self.minpos + self.speed * self.scene.current_time
+            maxpos = self.maxpos + self.speed * self.scene.current_time
+        else:
+            minpos = self.minpos
+            maxpos = self.maxpos
+
         if ray.direction.x == 0:
-            if not (self.minpos.x < ray.origin.x < self.maxpos.x):
+            if not (minpos.x < ray.origin.x < maxpos.x):
                 return False
             x_interval = hc.AAInterval(float("-inf"), float("inf"), "x")
         else:
-            t_x_1 = (self.minpos.x - ray.origin.x) / ray.direction.x
-            t_x_2 = (self.maxpos.x - ray.origin.x) / ray.direction.x
+            t_x_1 = (minpos.x - ray.origin.x) / ray.direction.x
+            t_x_2 = (maxpos.x - ray.origin.x) / ray.direction.x
             x_interval = hc.AAInterval(t_x_1, t_x_2, "x")
 
         if ray.direction.y == 0:
-            if not (self.minpos.y < ray.origin.y < self.maxpos.y):
+            if not (minpos.y < ray.origin.y < maxpos.y):
                 return False
             y_interval = hc.AAInterval(float("-inf"), float("inf"), "y")
         else:
-            t_y_1 = (self.minpos.y - ray.origin.y) / ray.direction.y
-            t_y_2 = (self.maxpos.y - ray.origin.y) / ray.direction.y
+            t_y_1 = (minpos.y - ray.origin.y) / ray.direction.y
+            t_y_2 = (maxpos.y - ray.origin.y) / ray.direction.y
             y_interval = hc.AAInterval(t_y_1, t_y_2, "y")
 
         if ray.direction.z == 0:
-            if not (self.minpos.z < ray.origin.z < self.maxpos.z):
+            if not (minpos.z < ray.origin.z < maxpos.z):
                 return False
             z_interval = hc.AAInterval(float("-inf"), float("inf"), "z")
         else:
-            t_z_1 = (self.minpos.z - ray.origin.z) / ray.direction.z
-            t_z_2 = (self.maxpos.z - ray.origin.z) / ray.direction.z
+            t_z_1 = (minpos.z - ray.origin.z) / ray.direction.z
+            t_z_2 = (maxpos.z - ray.origin.z) / ray.direction.z
             z_interval = hc.AAInterval(t_z_1, t_z_2, "z")
 
         intersected = (max(x_interval, y_interval, z_interval, key=lambda x: x.start),
@@ -208,9 +248,16 @@ class AABB(Geometry):
         return self.shadow_epsilon < time < t_max
 
     def is_inside(self, point: glm.vec3) -> bool:
-        inside_x = self.minpos.x < point.x < self.maxpos.x
-        inside_y = self.minpos.y < point.y < self.maxpos.y
-        inside_z = self.minpos.z < point.z < self.maxpos.z
+        if self.speed is not None:
+            minpos = self.minpos + self.speed * self.scene.current_time
+            maxpos = self.maxpos + self.speed * self.scene.current_time
+        else:
+            minpos = self.minpos
+            maxpos = self.maxpos
+
+        inside_x = minpos.x < point.x < maxpos.x
+        inside_y = minpos.y < point.y < maxpos.y
+        inside_z = minpos.z < point.z < maxpos.z
         return inside_x and inside_y and inside_z
 
     def __repr__(self):

@@ -34,7 +34,7 @@ class Scene:
         x = self.vc.left + 0.5 * dx
         dy = (self.vc.top - self.vc.bottom) / self.vc.height
 
-        progress = tqdm(total=self.vc.width * self.vc.height * self.samples * self.vc.dof_samples, desc="Rendering")
+        progress = tqdm(total=self.vc.width * self.vc.height * self.samples * self.vc.dof_samples * len(self.vc.motion_times), desc="Rendering")
 
         for i in range(self.vc.width):
             y = self.vc.bottom + 0.5 * dy
@@ -56,11 +56,13 @@ class Scene:
                             noise = 0.1 * (dx + dy) * glm.normalize(glm.vec3(np.random.rand(), np.random.rand(), np.random.rand()))
                             ray.origin += noise
 
-                        colour += self.cast_ray(ray)
+                        for time in self.vc.motion_times:
+                            self.current_time = time
+                            colour += self.cast_ray(ray)
 
-                        progress.update(1)
+                            progress.update(1)
 
-                image[i, j] = colour / (self.samples * self.vc.dof_samples)
+                image[i, j] = colour / (self.samples * self.vc.dof_samples * len(self.vc.motion_times))
 
                 y += dy
 
