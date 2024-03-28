@@ -38,11 +38,17 @@ class Geometry:
         self.gtype = gtype
         self.materials = materials
 
-    def intersect(self, ray: hc.Ray) -> Intersection:
-        return None
+    def intersect(self, ray: hc.Ray) -> list[Intersection]:
+        return []
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
         return False
+
+    def is_inside(self, point: glm.vec3) -> bool:
+        return False
+
+    def get_material(self, point: glm.vec3) -> hc.Material:
+        return self.materials[0]
 
     def __repr__(self):
         return f"Geometry({self.name}, type: {self.gtype})"
@@ -69,29 +75,22 @@ class Hierarchy(Geometry):
         self.r = r
         self.s = s
 
-    def intersect(self, ray: hc.Ray) -> Intersection:
+    def intersect(self, ray: hc.Ray) -> list[Intersection]:
         m_inv_o = glm.vec3(self.Minv * glm.vec4(ray.origin, 1))
         m_inv_d = glm.vec3(self.Minv * glm.vec4(ray.direction, 0))
         m_ray = hc.Ray(m_inv_o, m_inv_d)
 
         intersections = []
         for child in self.children:
-            intersect = child.intersect(m_ray)
-            if intersect is not None and intersect.time < float('inf'):
-                intersections.append(intersect)
+            intersections += child.intersect(m_ray)
 
-        if len(intersections) == 0:
-            return None
+        for intersect in intersections:
+            if intersect.mat is None:
+                intersect.mat = self.materials[0]
+            intersect.position = (self.M * glm.vec4(intersect.position, 1)).xyz
+            intersect.normal = glm.normalize(glm.transpose(self.Minv) * glm.vec4(intersect.normal, 0)).xyz
 
-        first_intersect = min(intersections, key=lambda x: x.time)
-
-        if first_intersect.mat is None:
-            first_intersect.mat = self.materials[0]
-
-        first_intersect.position = (self.M * glm.vec4(first_intersect.position, 1)).xyz
-        first_intersect.normal = glm.normalize(glm.transpose(self.Minv) * glm.vec4(first_intersect.normal, 0)).xyz
-
-        return first_intersect
+        return intersections
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
         m_inv_o = glm.vec3(self.Minv * glm.vec4(ray.origin, 1))
@@ -103,6 +102,15 @@ class Hierarchy(Geometry):
                 return True
 
         return False
+
+    def get_material(self, point: glm.vec3) -> hc.Material:
+        m_inv_p = glm.vec3(self.Minv * glm.vec4(point, 1))
+
+        for child in self.children:
+            if child.is_inside(m_inv_p):
+                return child.materials[0]
+
+        return None
 
     def __repr__(self):
         return f"Hierarchy({self.name}, t: {self.t}, r: {self.r}, s: {self.s}, children: {len(self.children)})"

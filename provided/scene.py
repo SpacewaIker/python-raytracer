@@ -75,9 +75,7 @@ class Scene:
         # get all intesections with all objects
         intersections = []
         for obj in self.objects:
-            intersect = obj.intersect(ray)
-            if intersect is not None and intersect.time < float("inf"):
-                intersections.append(intersect)
+            intersections += obj.intersect(ray)
 
         if len(intersections) == 0:
             return glm.vec3(0, 0, 0)

@@ -4,6 +4,7 @@ import helperclasses as hc
 import geometry as geom
 import geometry.simple_geometry as geom_sg
 import geometry.mesh as geom_mesh
+import geometry.constructive_solid_geometry as geom_csg
 import scene
 import glm
 
@@ -125,52 +126,76 @@ def load_scene(infile):
     rootNames = []
     roots = []
     for geometry in data["objects"]:
-        # Elements common to all objects: name, type, position, material(s)
-        g_name = geometry["name"]
-        g_type = geometry["type"]
-        g_pos = populateVec(geometry["position"])
-        g_mats = associate_material(materials, geometry["materials"])
-
-        if add_basic_shape(g_name, g_type, g_pos, g_mats, geometry, objects):
-            # Non-hierarchies are straightforward
-            continue
-        elif g_type == "node":
-            g_ref = geometry["ref"]
-            g_r = populateVec(geometry["rotation"])
-            g_s = populateVec(geometry["scale"])
-
-            if g_ref == "":
-                # Brand-new hierarchy
-                rootNames.append(g_name)
-                node = geom.Hierarchy(g_name, g_type, g_mats, g_pos, g_r, g_s)
-                traverse_children(node, geometry["children"], materials)
-                roots.append(node)
-                objects.append(node)
-            else:
-                # Hierarchy that depends on a previously defined one
-                rid = -1
-                for i in range(len(rootNames)):
-                    # Find hierarchy that this references
-                    if g_ref == rootNames[i]:
-                        rid = i
-                        break
-                if rid != -1:
-                    node = copy.deepcopy(roots[rid])
-                    node.name = g_name
-                    node.materials = g_mats
-                    node.make_matrices(g_pos, g_r, g_s)
-                    objects.append(node)
-                else:
-                    print("Node reference", g_ref, "not found, skipping creation")
-
-        else:
-            print("Unkown object type", g_type, ", skipping initialization")
-            continue
+        parse_geometry(geometry, objects, rootNames, roots, materials)
 
     print("Parsing complete")
     return scene.Scene(vc, jitter, samples,  # General settings
                        ambient, lights,  # Light settings
                        materials, objects)  # General settings
+
+
+def parse_geometry(geometry, objects, rootNames, roots, materials):
+    # Elements common to all objects: name, type, position, material(s)
+    g_name = geometry["name"]
+    g_type = geometry["type"]
+    try:
+        g_pos = populateVec(geometry["position"])
+    except KeyError:
+        g_pos = glm.vec3(0, 0, 0)
+    try:
+        g_mats = associate_material(materials, geometry["materials"])
+    except KeyError:
+        g_mats = []
+
+    if add_basic_shape(g_name, g_type, g_pos, g_mats, geometry, objects):
+        # Non-hierarchies are straightforward
+        return
+    elif g_type == "union" or g_type == "difference" or g_type == "intersection":
+        children = geometry["children"]
+
+        child_objects = []
+
+        for child in children:
+            parse_geometry(child, child_objects, rootNames, roots, materials)
+
+        if g_type == "union":
+            objects.append(geom_csg.CSGUnion(g_name, g_mats, child_objects))
+        elif g_type == "difference":
+            objects.append(geom_csg.CSGDifference(g_name, g_mats, child_objects[0], child_objects[1]))
+        elif g_type == "intersection":
+            objects.append(geom_csg.CSGIntersection(g_name, g_mats, child_objects))
+    elif g_type == "node":
+        g_ref = geometry["ref"]
+        g_r = populateVec(geometry["rotation"])
+        g_s = populateVec(geometry["scale"])
+
+        if g_ref == "":
+            # Brand-new hierarchy
+            rootNames.append(g_name)
+            node = geom.Hierarchy(g_name, g_type, g_mats, g_pos, g_r, g_s)
+            traverse_children(node, geometry["children"], materials)
+            roots.append(node)
+            objects.append(node)
+        else:
+            # Hierarchy that depends on a previously defined one
+            rid = -1
+            for i in range(len(rootNames)):
+                # Find hierarchy that this references
+                if g_ref == rootNames[i]:
+                    rid = i
+                    break
+            if rid != -1:
+                node = copy.deepcopy(roots[rid])
+                node.name = g_name
+                node.materials = g_mats
+                node.make_matrices(g_pos, g_r, g_s)
+                objects.append(node)
+            else:
+                print("Node reference", g_ref, "not found, skipping creation")
+
+    else:
+        print("Unkown object type", g_type, ", skipping initialization")
+        return
 
 
 def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_mats: list[hc.Material], geometry, objects: list[geom.Geometry]):
