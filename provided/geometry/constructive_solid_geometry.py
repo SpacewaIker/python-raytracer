@@ -108,13 +108,13 @@ class CSGDifference(Geometry):
         c1 = self.child1.intersect(ray)
         c2 = self.child2.intersect(ray)
 
-        intersections = c1 + c2
+        intersections = list(filter(lambda i: i.time > self.shadow_epsilon, c1 + c2))
         intersections.sort(key=lambda x: x.time)
 
         if len(intersections) == 0:
             return False
 
-        return intersections[0].geometry == self.child1 or intersections[-1].geometry == self.child1
+        return intersections[0] in c1 or intersections[-1] in c1
 
     def is_inside(self, point: glm.vec3) -> bool:
         c1 = self.child1.is_inside(point)

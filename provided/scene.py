@@ -106,7 +106,7 @@ class Scene:
         # else, diffuse
 
         # lighting
-        colour = self.ambient * first_intersect.mat.diffuse
+        colour = glm.vec3(0, 0, 0)
         for light in self.lights:
             # check shadow ray
             skip = False
@@ -137,12 +137,15 @@ class Scene:
             # compute lighting
             normal = first_intersect.normal
 
-            lambert = first_intersect.mat.diffuse * light.power * max(0.0, glm.dot(normal, light_dir))
+            lambert = first_intersect.mat.diffuse * max(0.0, glm.dot(normal, light_dir))
 
             half_vect = glm.normalize(light_dir - ray.direction)
-            specular = first_intersect.mat.specular * light.power * max(0.0, glm.dot(normal, half_vect)) ** first_intersect.mat.hardness
+            specular = first_intersect.mat.specular * max(0.0, glm.dot(normal, half_vect)) ** first_intersect.mat.hardness
 
-            colour += light.colour * (lambert + specular)
+            colour += light.colour * light.power * (lambert + specular)
+
+        colour /= len(self.lights)
+        colour += self.ambient * first_intersect.mat.diffuse
 
         cx = max(0.0, min(1.0, colour.x))
         cy = max(0.0, min(1.0, colour.y))

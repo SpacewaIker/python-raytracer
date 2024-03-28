@@ -90,7 +90,8 @@ def load_scene(infile):
                 print("Unkown light type", l_type, ", skipping initialization")
                 continue
             lights.append(hc.Light(l_type, l_name, l_colour, l_vector, l_power))
-    except KeyError:
+    except KeyError as e:
+        print("Error loading lights: ", e)
         lights = []
 
     # Loading materials

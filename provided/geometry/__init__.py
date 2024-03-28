@@ -31,7 +31,7 @@ class Intersection:
 
 
 class Geometry:
-    shadow_epsilon = 10 ** (-6)
+    shadow_epsilon = 10 ** (-5)
 
     def __init__(self, name: str, gtype: str, materials: list[hc.Material]):
         self.name = name
