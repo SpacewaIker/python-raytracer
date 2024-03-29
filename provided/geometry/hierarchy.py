@@ -82,15 +82,15 @@ class Hierarchy(Geometry):
             c1 = self.children[0].intersect(m_ray)
             c2 = self.children[1].intersect(m_ray)
 
-            intersections = list(filter(lambda i: i.time > self.shadow_epsilon, c1 + c2))
+            for intersection in c1:
+                if intersection.time > self.shadow_epsilon and not self.children[1].is_inside(intersection.position):
+                    return True
 
-            if len(intersections) == 0:
-                return False
+            for intersection in c2:
+                if intersection.time > self.shadow_epsilon and self.children[0].is_inside(intersection.position):
+                    return True
 
-            intersect_min = min(intersections, key=lambda x: x.time)
-            intersect_max = max(intersections, key=lambda x: x.time)
-
-            return intersect_min in c1 or intersect_max in c1
+            return False
 
         return False
 
