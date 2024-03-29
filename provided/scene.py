@@ -27,16 +27,19 @@ class Scene:
         self.materials = materials  # all materials of objects in the scene
         self.objects = objects  # all objects in the scene
 
-    def render(self):
-        image = np.zeros((self.vc.width, self.vc.height, 3))
+    def render(self, subimage: int = 0, tasks: int = 1) -> np.ndarray:
+        widths = np.array_split(np.arange(self.vc.width), tasks)
+        width = widths[subimage]
+
+        image = np.zeros((len(width), self.vc.height, 3))
 
         dx = (self.vc.right - self.vc.left) / self.vc.width
-        x = self.vc.left + 0.5 * dx
+        x = self.vc.left + (0.5 + width[0]) * dx
         dy = (self.vc.top - self.vc.bottom) / self.vc.height
 
-        progress = tqdm(total=self.vc.width * self.vc.height * self.samples * self.vc.dof_samples * len(self.vc.motion_times), desc="Rendering")
+        progress = tqdm(total=len(width) * self.vc.height * self.samples * self.vc.dof_samples * len(self.vc.motion_times), desc="Rendering")
 
-        for i in range(self.vc.width):
+        for i in width:
             y = self.vc.bottom + 0.5 * dy
 
             for j in range(self.vc.height):
@@ -62,7 +65,7 @@ class Scene:
 
                             progress.update(1)
 
-                image[i, j] = colour / (self.samples * self.vc.dof_samples * len(self.vc.motion_times))
+                image[i - width[0], j] = colour / (self.samples * self.vc.dof_samples * len(self.vc.motion_times))
 
                 y += dy
 
