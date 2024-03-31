@@ -21,7 +21,7 @@ class Ray:
 
 
 class Material:
-    def __init__(self, name: str, specular: glm.vec3, diffuse: glm.vec3, hardness: float, ID: int, mat_type: str = "diffuse"):
+    def __init__(self, name: str, specular: glm.vec3, diffuse: glm.vec3, hardness: float, ID: int, mat_type: str = "diffuse", mat_tint: float = 0.0):
         self.name = name
         self.specular = specular
         self.diffuse = diffuse
@@ -29,6 +29,7 @@ class Material:
         self.ID = ID
         self.mat_type = mat_type
         self.refr_index = 1.0
+        self.tint = mat_tint
 
     @staticmethod
     def default():

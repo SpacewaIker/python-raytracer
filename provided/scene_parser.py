@@ -125,21 +125,15 @@ def load_scene(infile):
         mat_id = material["ID"]
 
         mat_type = get_or(material, "type", "diffuse")
+        mat_diffuse = populateVec(get_or(material, "diffuse", [0, 0, 0]))
+        mat_specular = populateVec(get_or(material, "specular", [0, 0, 0]))
+        mat_hardness = get_or(material, "hardness", 32)
+        mat_tint = get_or(material, "tint", 0.0)
+        mat_refr_index = get_or(material, "refr_index", 1.0)
 
-        if mat_type == "diffuse":
-            mat_diffuse = populateVec(material["diffuse"])
-            mat_specular = populateVec(material["specular"])
-            mat_hardness = material["hardness"]
-            materials.append(hc.Material(mat_name, mat_specular, mat_diffuse, mat_hardness, mat_id, mat_type))
-        elif mat_type == "mirror":
-            zero = glm.vec3(0, 0, 0)
-            materials.append(hc.Material(mat_name, zero, zero, 0.0, mat_id, mat_type))
-        elif mat_type == "refractive":
-            zero = glm.vec3(0, 0, 0)
-            refr_index = material["refr_index"]
-            material = hc.Material(mat_name, zero, zero, 0.0, mat_id, mat_type)
-            material.refr_index = refr_index
-            materials.append(material)
+        material = hc.Material(mat_name, mat_diffuse, mat_specular, mat_hardness, mat_id, mat_type, mat_tint)
+        material.refr_index = mat_refr_index
+        materials.append(material)
 
     # Loading geometry
     objects = []

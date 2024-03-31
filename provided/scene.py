@@ -95,62 +95,15 @@ class Scene:
             reflect_pos = first_intersect.position + 0.001 * reflect_dir
             reflect_ray = hc.Ray(reflect_pos, reflect_dir)
             reflection = self.cast_ray(reflect_ray, max_recursion - 1)
-            return reflection
+            colour = self._compute_regular_lighting(ray, first_intersect)
+            colour = colour * first_intersect.mat.tint + reflection * (1 - first_intersect.mat.tint)
         elif first_intersect.mat.mat_type == "refractive":
-            if in_shape:
-                eta = first_intersect.mat.refr_index
-            else:
-                eta = 1.0 / first_intersect.mat.refr_index
-
-            refract_dir = glm.refract(ray.direction, first_intersect.normal, eta)
-            refract_pos = first_intersect.position + 0.001 * refract_dir
-            refract_ray = hc.Ray(refract_pos, refract_dir)
-            refraction = self.cast_ray(refract_ray, max_recursion - 1, not in_shape)
-            return refraction
-
-        # else, diffuse
-
-        # lighting
-        colour = glm.vec3(0, 0, 0)
-        for light in self.lights:
-            # check shadow ray
-            skip = False
-
-            # create shadow ray
-            if light.type == "point":
-                shadow_ray = hc.Ray(first_intersect.position, light.vector - first_intersect.position)
-                t_max = 1.0
-            elif light.type == "directional":
-                shadow_ray = hc.Ray(first_intersect.position, -light.vector)
-                t_max = float("inf")
-
-            # check if shadow ray intersects with any object
-            for obj in self.objects:
-                if obj.shadow_intersect(shadow_ray, t_max):
-                    skip = True
-                    break
-
-            if skip:
-                continue
-
-            # compute light direction
-            if light.type == "point":
-                light_dir = glm.normalize(light.vector - first_intersect.position)
-            elif light.type == "directional":
-                light_dir = glm.normalize(-light.vector)
-
-            # compute lighting
-            normal = first_intersect.normal
-
-            lambert = first_intersect.mat.diffuse * max(0.0, glm.dot(normal, light_dir))
-
-            half_vect = glm.normalize(light_dir - ray.direction)
-            specular = first_intersect.mat.specular * max(0.0, glm.dot(normal, half_vect)) ** first_intersect.mat.hardness
-
-            colour += light.colour * light.power * (lambert + specular)
-
-        colour /= len(self.lights)
-        colour += self.ambient * first_intersect.mat.diffuse
+            refraction = self._compute_refraction(ray, first_intersect, in_shape, max_recursion)
+            colour = self._compute_regular_lighting(ray, first_intersect)
+            colour = colour * first_intersect.mat.tint + refraction * (1 - first_intersect.mat.tint)
+        else:
+            # else, diffuse
+            colour = self._compute_regular_lighting(ray, first_intersect)
 
         cx = max(0.0, min(1.0, colour.x))
         cy = max(0.0, min(1.0, colour.y))
@@ -178,3 +131,59 @@ class Scene:
             points.append(glm.vec3(x, y, origin.z))
 
         return points
+
+    def _compute_regular_lighting(self, ray: hc.Ray, intersection: geom.Intersection) -> glm.vec3:
+        colour = glm.vec3(0, 0, 0)
+        for light in self.lights:
+            # check shadow ray
+            skip = False
+
+            # create shadow ray
+            if light.type == "point":
+                shadow_ray = hc.Ray(intersection.position, light.vector - intersection.position)
+                t_max = 1.0
+            elif light.type == "directional":
+                shadow_ray = hc.Ray(intersection.position, -light.vector)
+                t_max = float("inf")
+
+            # check if shadow ray intersects with any object
+            for obj in self.objects:
+                if obj.shadow_intersect(shadow_ray, t_max):
+                    skip = True
+                    break
+
+            if skip:
+                continue
+
+            # compute light direction
+            if light.type == "point":
+                light_dir = glm.normalize(light.vector - intersection.position)
+            elif light.type == "directional":
+                light_dir = glm.normalize(-light.vector)
+
+            # compute lighting
+            normal = intersection.normal
+
+            lambert = intersection.mat.diffuse * max(0.0, glm.dot(normal, light_dir))
+
+            half_vect = glm.normalize(light_dir - ray.direction)
+            specular = intersection.mat.specular * max(0.0, glm.dot(normal, half_vect)) ** intersection.mat.hardness
+
+            colour += light.colour * light.power * (lambert + specular)
+
+        colour /= len(self.lights)
+        colour += self.ambient * intersection.mat.diffuse
+
+        return colour
+
+    def _compute_refraction(self, ray: hc.Ray, intersection: geom.Intersection, in_shape, max_recursion) -> glm.vec3:
+        if in_shape:
+            eta = intersection.mat.refr_index
+        else:
+            eta = 1.0 / intersection.mat.refr_index
+
+        refract_dir = glm.refract(ray.direction, intersection.normal, eta)
+        refract_pos = intersection.position + 0.001 * refract_dir
+        refract_ray = hc.Ray(refract_pos, refract_dir)
+        refraction = self.cast_ray(refract_ray, max_recursion - 1, not in_shape)
+        return refraction
