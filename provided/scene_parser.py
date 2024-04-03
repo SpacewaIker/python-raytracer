@@ -131,7 +131,7 @@ def load_scene(infile):
         mat_tint = get_or(material, "tint", 0.0)
         mat_refr_index = get_or(material, "refr_index", 1.0)
 
-        material = hc.Material(mat_name, mat_diffuse, mat_specular, mat_hardness, mat_id, mat_type, mat_tint)
+        material = hc.Material(mat_name, mat_specular, mat_diffuse, mat_hardness, mat_id, mat_type, mat_tint)
         material.refr_index = mat_refr_index
         materials.append(material)
 
