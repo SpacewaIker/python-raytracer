@@ -171,7 +171,6 @@ class Scene:
 
             colour += light.colour * light.power * (lambert + specular)
 
-        colour /= len(self.lights)
         colour += self.ambient * intersection.mat.diffuse
 
         return colour
