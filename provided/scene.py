@@ -52,9 +52,6 @@ class Scene:
                 for dof_origin in self._sunflower_spread(self.vc.dof_samples, base_ray_origin, self.vc.aperture):
                     dof_direction = glm.normalize(focal_point - dof_origin)
 
-                    if abs(dof_direction.x) < 0.001 and abs(dof_direction.y) < 0.001 and abs(dof_direction.z) < 0.001:
-                        print("dof direction is 0")
-
                     for ray_origin in self._sunflower_spread(self.samples, dof_origin, 2 * (dx + dy)):
                         ray = hc.Ray(ray_origin, dof_direction)
 
@@ -80,8 +77,6 @@ class Scene:
         if max_recursion == 0:
             return glm.vec3(0, 0, 0)
 
-        if abs(ray.direction.x) < 0.001 and abs(ray.direction.y) < 0.001 and abs(ray.direction.z) < 0.001:
-            print("cast ray direction is 0")
         # get all intesections with all objects
         intersections = []
         for obj in self.objects:
@@ -96,11 +91,7 @@ class Scene:
         # check for types of materials
         if first_intersect.mat.mat_type == "mirror":
             # reflect
-            if abs(ray.direction.x) < 0.001 and abs(ray.direction.y) < 0.001 and abs(ray.direction.z) < 0.001:
-                print("ray direction is 0")
             reflect_dir = glm.reflect(ray.direction, first_intersect.normal)
-            if abs(reflect_dir.x) < 0.001 and abs(reflect_dir.y) < 0.001 and abs(reflect_dir.z) < 0.001:
-                print("reflect dir is 0")
             reflect_pos = first_intersect.position + 0.001 * reflect_dir
             reflect_ray = hc.Ray(reflect_pos, reflect_dir)
             reflection = self.cast_ray(reflect_ray, max_recursion - 1)
@@ -193,17 +184,21 @@ class Scene:
     def _compute_refraction(self, ray: hc.Ray, intersection: geom.Intersection, in_shape, max_recursion) -> glm.vec3:
         if in_shape:
             eta = intersection.mat.refr_index
+            intersection.normal = -intersection.normal
         else:
             eta = 1.0 / intersection.mat.refr_index
 
-        if eta == 1.458:
-            breakpoint()
         refract_dir = glm.refract(ray.direction, intersection.normal, eta)
 
-        if abs(refract_dir.x) < 0.001 and abs(refract_dir.y) < 0.001 and abs(refract_dir.z) < 0.001:
-            print("refract dir is 0 ", eta)
+        if refract_dir == glm.vec3(0, 0, 0):  # total internal reflection
+            return glm.vec3(0, 0, 0)
+            reflect_dir = glm.reflect(ray.direction, intersection.normal)
+            reflect_pos = intersection.position + 0.001 * reflect_dir
+            reflect_ray = hc.Ray(reflect_pos, reflect_dir)
+            reflection = self.cast_ray(reflect_ray, max_recursion - 1, in_shape)
+            return reflection
 
-        refract_pos = intersection.position + 0.001 * refract_dir
+        refract_pos = intersection.position + 0.0001 * refract_dir
         refract_ray = hc.Ray(refract_pos, refract_dir)
         refraction = self.cast_ray(refract_ray, max_recursion - 1, not in_shape)
         return refraction
