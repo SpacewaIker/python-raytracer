@@ -7,6 +7,7 @@ import geometry.mesh as geom_mesh
 import geometry.hierarchy as geom_h
 import scene
 import glm
+from PIL import Image
 
 # Ported from C++ by Melissa Katz
 # Adapted from code by Loïc Nassif and Paul Kry
@@ -207,17 +208,36 @@ def add_basic_shape(g_name: str, g_type: str, g_pos: glm.vec3, g_speed, g_mats: 
         objects.append(geom_sg.Sphere(g_name, g_type, g_mats, g_pos, g_radius, g_speed))
     elif g_type == "plane":
         g_normal = populateVec(geometry["normal"])
-        objects.append(geom_sg.Plane(g_name, g_type, g_mats, g_pos, g_normal, g_speed))
+        plane = geom_sg.Plane(g_name, g_type, g_mats, g_pos, g_normal, g_speed)
+
+        try:
+            texture = geometry["texture"]
+            im = Image.open(texture)
+            plane.texture = im
+            scale = get_or(geometry, "texture_scale", 1.0)
+            plane.texture_scale = scale
+        except KeyError:
+            pass
+
+        objects.append(plane)
     elif g_type == "box":
         try:
             g_size = populateVec(geometry["size"])
-            objects.append(geom_sg.AABB(g_name, g_type, g_mats, g_pos, g_size, g_speed))
+            box = geom_sg.AABB(g_name, g_type, g_mats, g_pos, g_size, g_speed)
         except KeyError:
             # Boxes can also be directly declared with a min and max position
             box = geom_sg.AABB(g_name, g_type, g_mats, g_pos, glm.vec3(0, 0, 0), g_speed)
             box.minpos = populateVec(geometry["min"])
             box.maxpos = populateVec(geometry["max"])
-            objects.append(box)
+
+        try:
+            texture = geometry["texture"]
+            im = Image.open(texture)
+            box.texture = im
+        except KeyError:
+            pass
+
+        objects.append(box)
     elif g_type == "mesh":
         g_path = geometry["filepath"]
         g_scale = geometry["scale"]

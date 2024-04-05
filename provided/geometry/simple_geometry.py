@@ -18,6 +18,9 @@ class Sphere(Geometry):
         else:
             center = self.center
 
+        if abs(ray.direction.x) < 0.01 and abs(ray.direction.y) < 0.01 and abs(ray.direction.z) < 0.01:
+            print("Ray direction is zero ", ray.direction)
+
         a = glm.dot(ray.direction, ray.direction)  # a = d . d
         b = 2 * glm.dot(ray.direction, ray.origin - center)  # b = 2 (d . p - d . c)
         c = glm.dot(ray.origin - center, ray.origin - center) - self.radius ** 2  # c = p . p - 2 p . c + c . c - r^2
@@ -80,6 +83,13 @@ class Plane(Geometry):
         super().__init__(name, gtype, materials, speed)
         self.point = point
         self.normal = normal
+        self.texture = None
+
+        if self.normal != glm.vec3(0, 0, 1):
+            self.width_axis = glm.normalize(glm.cross(self.normal, glm.vec3(0, 0, 1)))
+        else:
+            self.width_axis = glm.normalize(glm.cross(glm.vec3(0, 1, 0), self.normal))
+        self.height_axis = glm.normalize(glm.cross(self.width_axis, self.normal))
 
     def intersect(self, ray: hc.Ray) -> list[Intersection]:
         if self.speed is not None:
@@ -92,13 +102,7 @@ class Plane(Geometry):
             t = glm.dot(point - ray.origin, self.normal) / denom
             if t >= 0:
                 position = ray.getPoint(t)
-
-                if len(self.materials) == 1:
-                    mat = self.materials[0]
-                else:
-                    dx = math.floor(position.x - point.x)
-                    dz = math.floor(position.z - point.z)
-                    mat = self.materials[(dx + dz) % 2]
+                mat = self.get_material(position)
 
                 intersect = Intersection(t, self.normal, position, mat, self)
                 return [intersect]
@@ -117,15 +121,45 @@ class Plane(Geometry):
 
     def get_material(self, point: glm.vec3) -> hc.Material:
         if self.speed is not None:
-            point = self.point + self.speed * self.scene.current_time
+            position = self.point + self.speed * self.scene.current_time
         else:
-            point = self.point
+            position = self.point
 
         if len(self.materials) == 1:
             return self.materials[0]
-        dx = math.floor(point.x - point.x)
-        dz = math.floor(point.z - point.z)
+
+        point = point - glm.dot(point - position, self.normal) * self.normal
+        x = glm.dot(point - position, self.width_axis)
+        z = glm.dot(point - position, self.height_axis)
+
+        dx = math.floor(position.x - x)
+        dz = math.floor(position.z - z)
         return self.materials[(dx + dz) % 2]
+
+    def get_diffuse(self, point: glm.vec3) -> glm.vec3:
+        if self.texture is not None:
+            if self.speed is not None:
+                position = self.point + self.speed * self.scene.current_time
+            else:
+                position = self.point
+
+            try:
+                scale = self.texture_scale
+            except AttributeError:
+                scale = 1.0
+
+            # project point onto plane using plane normal
+            point = point - glm.dot(point - self.point, self.normal) * self.normal
+
+            i = int((glm.dot(point - position, self.width_axis) * 1000.0 / scale) % self.texture.width)
+            j = int((glm.dot(point - position, self.height_axis) * 1000.0 / scale) % self.texture.height)
+
+            pixel = self.texture.getpixel((i, j))
+            colour = glm.vec3(pixel[0] / 255, pixel[1] / 255, pixel[2] / 255)
+
+            return colour
+        else:
+            return self.get_material(point).diffuse
 
     def __repr__(self):
         return f"Plane({self.name}, point: {self.point}, normal: {self.normal})"
@@ -138,6 +172,7 @@ class AABB(Geometry):
         halfside = dimension / 2
         self.minpos = center - halfside
         self.maxpos = center + halfside
+        self.texture = None
 
     def intersect(self, ray: hc.Ray) -> list[Intersection]:
         if self.speed is not None:
@@ -262,3 +297,48 @@ class AABB(Geometry):
 
     def __repr__(self):
         return f"AABB({self.name}, minpos: {self.minpos}, maxpos: {self.maxpos})"
+
+    def get_diffuse(self, point: glm.vec3) -> glm.vec3:
+        if self.texture is not None:
+            if self.speed is not None:
+                minpos = self.minpos + self.speed * self.scene.current_time
+                maxpos = self.maxpos + self.speed * self.scene.current_time
+            else:
+                minpos = self.minpos
+                maxpos = self.maxpos
+
+            x = (point.x - minpos.x) / (maxpos.x - minpos.x)
+            y = (point.y - minpos.y) / (maxpos.y - minpos.y)
+            z = (point.z - minpos.z) / (maxpos.z - minpos.z)
+
+            if abs(point.x - minpos.x) < epsilon:  # negative x
+                i = z * self.texture.width
+                j = (1 - y) * self.texture.height
+            elif abs(point.x - maxpos.x) < epsilon:  # positive x
+                i = (1 - z) * self.texture.width
+                j = (1 - y) * self.texture.height
+            elif abs(point.y - minpos.y) < epsilon:  # negative y
+                i = x * self.texture.width
+                j = (1 - z) * self.texture.height
+            elif abs(point.y - maxpos.y) < epsilon:  # positive y
+                i = x * self.texture.width
+                j = z * self.texture.height
+            elif abs(point.z - minpos.z) < epsilon:  # negative z
+                i = (1 - x) * self.texture.width
+                j = (1 - y) * self.texture.height
+            elif abs(point.z - maxpos.z) < epsilon:  # positive z
+                i = x * self.texture.width
+                j = (1 - y) * self.texture.height
+            else:
+                i = 0
+                j = 0
+
+            i = min(max(0, i), self.texture.width - 1)
+            j = min(max(0, j), self.texture.height - 1)
+
+            pixel = self.texture.getpixel((i, j))
+            colour = glm.vec3(pixel[0] / 255, pixel[1] / 255, pixel[2] / 255)
+
+            return colour
+        else:
+            return self.materials[0].diffuse
