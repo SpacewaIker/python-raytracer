@@ -1,3 +1,8 @@
+# Thibaut Baguette
+# 261001513
+# COMP557/ECSE532 Assignment 4
+# 2024-04-08
+
 import glm
 import numpy as np
 import geometry as geom
@@ -92,7 +97,7 @@ class Scene:
         if first_intersect.mat.mat_type == "mirror":
             # reflect
             reflect_dir = glm.reflect(ray.direction, first_intersect.normal)
-            reflect_pos = first_intersect.position + 0.001 * reflect_dir
+            reflect_pos = first_intersect.position + 0.01 * reflect_dir
             reflect_ray = hc.Ray(reflect_pos, reflect_dir)
             reflection = self.cast_ray(reflect_ray, max_recursion - 1)
             colour = self._compute_regular_lighting(ray, first_intersect)

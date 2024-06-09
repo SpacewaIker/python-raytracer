@@ -1,3 +1,8 @@
+# Thibaut Baguette
+# 261001513
+# COMP557/ECSE532 Assignment 4
+# 2024-04-08
+
 import numpy as np
 import argparse
 from PIL import Image

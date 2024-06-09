@@ -1,3 +1,8 @@
+# Thibaut Baguette
+# 261001513
+# COMP557/ECSE532 Assignment 4
+# 2024-04-08
+
 from geometry import Geometry, Intersection, epsilon
 import glm
 import helperclasses as hc
@@ -5,7 +10,7 @@ import math
 
 
 class Sphere(Geometry):
-    shadow_epsilon = 10 ** (-4)
+    shadow_epsilon = 10 ** (-3)
 
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, radius: float, speed):
         super().__init__(name, gtype, materials, speed)
@@ -85,10 +90,16 @@ class Plane(Geometry):
         self.normal = normal
         self.texture = None
 
-        if self.normal != glm.vec3(0, 0, 1):
-            self.width_axis = glm.normalize(glm.cross(self.normal, glm.vec3(0, 0, 1)))
+        if self.normal == glm.vec3(0, 1, 0) or self.normal == glm.vec3(0, -1, 0) or self.normal == glm.vec3(0, 0, 1):
+            self.width_axis = glm.vec3(1, 0, 0)
+        elif self.normal == glm.vec3(0, 0, -1):
+            self.width_axis = glm.vec3(-1, 0, 0)
+        elif self.normal == glm.vec3(1, 0, 0):
+            self.width_axis = glm.vec3(0, 0, -1)
+        elif self.normal == glm.vec3(-1, 0, 0):
+            self.width_axis = glm.vec3(0, 0, 1)
         else:
-            self.width_axis = glm.normalize(glm.cross(glm.vec3(0, 1, 0), self.normal))
+            self.width_axis = glm.normalize(glm.cross(self.normal, glm.vec3(0, 0, 1)))
         self.height_axis = glm.normalize(glm.cross(self.width_axis, self.normal))
 
     def intersect(self, ray: hc.Ray) -> list[Intersection]:

@@ -1,3 +1,8 @@
+# Thibaut Baguette
+# 261001513
+# COMP557/ECSE532 Assignment 4
+# 2024-04-08
+
 import copy
 import json
 import helperclasses as hc
@@ -144,6 +149,10 @@ def load_scene(infile):
     roots = []
     for geometry in data["objects"]:
         parse_geometry(geometry, objects, rootNames, roots, materials)
+
+    for obj in objects:
+        if isinstance(obj, geom_h.Hierarchy):
+            obj.set_fallback_material(obj.materials)
 
     print("Parsing complete")
     sc = scene.Scene(vc, jitter, samples, ambient, lights, materials, objects)

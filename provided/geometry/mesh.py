@@ -1,3 +1,8 @@
+# Thibaut Baguette
+# 261001513
+# COMP557/ECSE532 Assignment 4
+# 2024-04-08
+
 from geometry import Geometry, Intersection, epsilon
 import helperclasses as hc
 import glm
@@ -66,7 +71,7 @@ class Mesh(Geometry):
 
     def intersect(self, ray: hc.Ray) -> Intersection:
         if not self.bounding_volume.intersect(ray):
-            return None
+            return []
 
         intersections = []
         for face in self.faces:
@@ -111,10 +116,7 @@ class Mesh(Geometry):
                 intersect = Intersection(time, normal, point, mat, self)
                 intersections.append(intersect)
 
-        if len(intersections) == 0:
-            return None
-
-        return min(intersections, key=lambda x: x.time)
+        return intersections
 
     def shadow_intersect(self, ray: hc.Ray, t_max: float) -> bool:
         if not self.bounding_volume.intersect(ray):

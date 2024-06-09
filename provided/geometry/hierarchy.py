@@ -1,3 +1,8 @@
+# Thibaut Baguette
+# 261001513
+# COMP557/ECSE532 Assignment 4
+# 2024-04-08
+
 from geometry import Geometry, Intersection
 import glm
 import helperclasses as hc
@@ -12,6 +17,15 @@ class Hierarchy(Geometry):
         self.hierarchy_type = hierarchy_type
         self.make_matrices(t, r, s)
         self.children: list[Geometry] = []
+
+    def set_fallback_material(self, materials: list[hc.Material]):
+        if len(materials) == 0:
+            return
+        for child in self.children:
+            if isinstance(child, Hierarchy):
+                child.set_fallback_material(materials)
+            else:
+                child.materials += materials
 
     def make_matrices(self, t: glm.vec3, r: glm.vec3, s: glm.vec3):
         self.M = glm.mat4(1.0)
