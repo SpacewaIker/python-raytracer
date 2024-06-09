@@ -1,0 +1,88 @@
+{
+    "resolution": [900, 512],
+    "AA": { "jitter": false, "samples": 1 },
+    "ambient": [0.1, 0.1, 0.1],
+    "camera": {
+        "position": [0.0, 2.0, 6.0],
+        "lookAt": [0.0, 1.0, 0.0],
+        "up": [0.0, 1.0, 0.0],
+        "fov": 45.0       
+    },
+    "materials": [
+        {
+            "name": "red", "ID": 0, 
+            "diffuse": [1.0, 0.0, 0.0], "specular": [0.8, 0.8, 0.8],
+            "hardness": 32
+        },
+        {
+            "name": "green", "ID": 1, 
+            "diffuse": [0.0, 1.0, 0.0], "specular": [0.8, 0.8, 0.8],
+            "hardness": 32
+        },
+        {
+            "name": "blue", "ID": 2, 
+            "diffuse": [0.0, 0.0, 1.0], "specular": [0.8, 0.8, 0.8],
+            "hardness": 32
+        },
+        {
+            "name": "mirror", "ID": 3, 
+            "type": "mirror"
+        },
+        {
+            "name": "refractive", "ID": 4,
+            "type": "refractive",
+            "refr_index": 1.458
+        },
+        {
+            "name": "mirror", "ID": 5, 
+            "diffuse": [0.0, 0.0, 1.0], "specular": [0.8, 0.8, 0.8],
+            "type": "mirror", "tint": 0.5
+        },
+        {
+            "name": "refractive", "ID": 6,
+            "diffuse": [0.0, 0.0, 1.0], "specular": [0.8, 0.8, 0.8],
+            "type": "refractive", "refr_index": 1.458, "tint": 0.5
+        }
+    ],    
+    "objects": [
+        {
+            "name": "plane1", "type": "plane",
+            "normal": [0.0, 1.0, 0.0], "distance": 0.0,
+            "position": [0.0, 0.0, 0.0],
+            "materials": [0, 1]
+        },
+        {
+            "name": "sphere1", "type": "sphere",
+            "radius": 1.0,
+            "position": [-3, 2.0, 0.0],
+            "materials": [5]
+        },        
+        {
+            "name": "sphere1", "type": "sphere",
+            "radius": 1.0,
+            "position": [-1, 2.0, 0.0],
+            "materials": [3]
+        },        
+        {
+            "name": "sphere1", "type": "sphere",
+            "radius": 1.0,
+            "position": [1, 2.0, 0.0],
+            "materials": [4]
+        },        
+        {
+            "name": "sphere2", "type": "sphere",
+            "radius": 1.0,
+            "position": [3, 2.0, 0.0],
+            "materials": [6]
+        }        
+    ],
+    "lights": [
+        {
+            "name": "light",
+            "type": "directional",
+            "direction": [0.0, -1.0, 0.0],
+            "colour": [1.0, 1.0, 1.0],
+            "power": 1.0
+        }
+    ]
+}

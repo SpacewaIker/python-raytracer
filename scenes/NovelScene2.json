@@ -1,0 +1,434 @@
+{
+    "resolution": [1024, 512],
+    "AA": { "jitter": true, "samples": 2 },
+    "DOF": { "focal_length": 10.0, "aperture": 0.1, "samples": 15 },
+    "motion": { "time": 1.0, "samples": 15, "final": 1 },
+    "ambient": [0.2, 0.2, 0.2],
+    "camera": {
+        "position": [7.0, 4.0, 6.0],
+        "lookAt": [0.0, 2.0, 0.0],
+        "up": [0.0, 1.0, 0.0],
+        "fov": 55.0       
+    },
+    "materials": [
+        {
+            "name": "blue", "ID": 0, 
+            "diffuse": [0.2, 0.3, 0.8], "specular": [0.2, 0.3, 0.8],
+            "hardness": 16
+        },
+        {
+            "name": "gloss_black", "ID": 1, 
+            "diffuse": [0.05, 0.05, 0.05], "specular": [0.1, 0.1, 0.1],
+            "hardness": 64, "type": "mirror", "tint": 0.8
+        },
+        {
+            "name": "grey", "ID": 2, 
+            "diffuse": [0.44, 0.44, 0.44], "specular": [0.44, 0.44, 0.44],
+            "hardness": 2
+        },
+        {
+            "name": "light_grey", "ID": 3,
+            "diffuse": [0.6, 0.6, 0.6], "specular": [0.6, 0.6, 0.6],
+            "hardness": 0
+        },
+        {
+            "name": "trail_blue", "ID": 4,
+            "diffuse": [0.2, 0.3, 0.8], "specular": [0.2, 0.3, 0.8],
+            "hardness": 100, "type": "refractive", "refr_index": 1.5, "tint": 0.7
+        },
+        {
+            "name": "mirror_grey", "ID": 5, 
+            "diffuse": [0.44, 0.44, 0.44], "specular": [0.44, 0.44, 0.44],
+            "hardness": 100, "type": "mirror", "tint": 0.8
+        },
+        {
+            "name": "mirror_light_grey", "ID": 6,
+            "diffuse": [0.6, 0.6, 0.6], "specular": [0.6, 0.6, 0.6],
+            "hardness": 100, "type": "mirror", "tint": 0.8
+        },
+        {
+            "name": "ground", "ID": 7,
+            "diffuse": [0.0, 0.0, 0.0], "specular": [0.0, 0.0, 0.0],
+            "hardness": 0, "type": "mirror", "tint": 0.8
+        },
+        {
+            "name": "wall", "ID": 8,
+            "diffuse": [0.8, 0.8, 0.0], "specular": [0.0, 0.0, 0.0],
+            "hardness": 0
+        },
+        {
+            "name": "gold", "ID": 9, 
+            "diffuse": [0.66, 0.47, 0.14], "specular": [0.66, 0.47, 0.14],
+            "hardness": 16
+        },
+        {
+            "name": "trail_gold", "ID": 10,
+            "diffuse": [0.66, 0.47, 0.14], "specular": [0.66, 0.47, 0.14],
+            "hardness": 100, "type": "refractive", "refr_index": 1.5, "tint": 0.7
+        }
+    ],    
+    "objects": [
+        {
+            "name": "ground", "type": "plane",
+            "normal": [0.0, 1.0, 0.0],
+            "position": [0.0, -1.0, 0.0],
+            "materials": [7],
+            "texture": "textures/ground.png",
+            "texture_scale": 4.0
+        },
+        {
+            "name": "wall1", "type": "node", "hierarchy_type": "intersection",
+            "position": [-60.0, 10.0, 11.0],
+            "materials": [],
+            "children": [
+                {
+                    "name": "wall1", "type": "plane",
+                    "normal": [1.0, 0.0, 0.0],
+                    "position": [0.0, -8.2, 10.5],
+                    "materials": [8],
+                    "texture": "textures/wall1.png",
+                    "texture_scale": 35.0
+                },
+                {
+                    "name": "wall1", "type": "box",
+                    "size": [0.1, 10.0, 70.0],
+                    "position": [0.0, 0.0, 0.0],
+                    "materials": [8]
+                }
+            ]
+        },
+        {
+            "name": "wall2", "type": "node", "hierarchy_type": "intersection",
+            "position": [-60.0, 10.0, -24.0],
+            "materials": [],
+            "children": [
+                {
+                    "name": "wall2", "type": "plane",
+                    "normal": [1.0, 0.0, 0.0],
+                    "position": [0.0, -8.2, 12.0],
+                    "materials": [8],
+                    "texture": "textures/wall2.png",
+                    "texture_scale": 35.0
+                },
+                {
+                    "name": "wall2", "type": "box",
+                    "size": [0.1, 10.0, 71.0],
+                    "position": [0.0, 0.0, 0.0],
+                    "materials": [8]
+                }
+            ]
+        },
+        {
+            "name": "wall4", "type": "node", "hierarchy_type": "intersection",
+            "position": [10.0, 10.0, -60.0],
+            "materials": [],
+            "children": [
+                {
+                    "name": "wall4", "type": "plane",
+                    "normal": [0.0, 0.0, 1.0],
+                    "position": [11.0, -8.2, 0.0],
+                    "materials": [8],
+                    "texture": "textures/wall4.png",
+                    "texture_scale": 35.0
+                },
+                {
+                    "name": "wall4", "type": "box",
+                    "size": [70.0, 10.0, 0.1],
+                    "position": [0.0, 0.0, 0.0],
+                    "materials": [8]
+                }
+            ]
+        },
+        {
+            "name": "wall3", "type": "node", "hierarchy_type": "intersection",
+            "position": [-26.0, 10.0, -60.0],
+            "materials": [],
+            "children": [
+                {
+                    "name": "wall3", "type": "plane",
+                    "normal": [0.0, 0.0, 1.0],
+                    "position": [-25.0, -8.2, 0.0],
+                    "materials": [8],
+                    "texture": "textures/wall3.png",
+                    "texture_scale": 35.0
+                },
+                {
+                    "name": "wall3", "type": "box",
+                    "size": [70.0, 10.0, 0.1],
+                    "position": [0.0, 0.0, 0.0],
+                    "materials": [8]
+                }
+            ]
+        },
+        {
+            "name": "bike", "type": "node", "hierarchy_type": "union",
+            "position": [0.0, -2.5, 0.0],
+            "materials": [0],
+            "speed": [0.0, 0.0, 0.5],
+            "children": [
+                {
+                    "name": "front_wheel", "type": "node", "hierarchy_type": "union",
+                    "position": [0.0, 2.35, 1.9],
+                    "scale": [1.0, 0.8, 0.8],
+                    "children": [
+                        {
+                            "name": "wheel_cutout", "type": "node", "hierarchy_type": "difference",
+                            "position": [0.0, 0.0, 0.0],
+                            "children": [
+                                {
+                                    "name": "wheel_main", "type": "node", "hierarchy_type": "union",
+                                    "position": [0.0, 0.0, 0.0],
+                                    "children": [
+                                        {
+                                            "name": "inner", "type": "sphere",
+                                            "radius": 0.8,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": [1]
+                                        },
+                                        {
+                                            "name": "outer", "type": "sphere",
+                                            "radius": 1.0,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "cutout", "type": "node", "hierarchy_type": "union",
+                                    "position": [0.0, 0.0, 0.0],
+                                    "children": [
+                                        {
+                                            "name": "cutout", "type": "sphere",
+                                            "radius": 0.8,
+                                            "position": [1.1, 0.0, 0.0],
+                                            "materials": [1]
+                                        },
+                                        {
+                                            "name": "cutout", "type": "sphere",
+                                            "radius": 0.8,
+                                            "position": [-1.1, 0.0, 0.0],
+                                            "materials": [1]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "name": "axle", "type": "sphere",
+                            "radius": 0.2, "position": [0.3, 0.0, 0.0],
+                            "materials": [2]
+                        },
+                        {
+                            "name": "axle", "type": "sphere",
+                            "radius": 0.2, "position": [-0.3, 0.0, 0.0],
+                            "materials": [2]
+                        }
+                    ]
+                },
+                {
+                    "name": "back_wheel", "type": "node", "hierarchy_type": "union",
+                    "position": [0.0, 2.35, -1.9],
+                    "scale": [0.3, 0.8, 0.8],
+                    "children": [
+                        {
+                            "name": "wheel_cutout", "type": "node", "hierarchy_type": "difference",
+                            "position": [0.0, 0.0, 0.0],
+                            "children": [
+                                {
+                                    "name": "wheel_main", "type": "node", "hierarchy_type": "union",
+                                    "position": [0.0, 0.0, 0.0],
+                                    "children": [
+                                        {
+                                            "name": "inner", "type": "sphere",
+                                            "radius": 0.8,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": [1]
+                                        },
+                                        {
+                                            "name": "outer", "type": "sphere",
+                                            "radius": 1.0,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "cutout", "type": "node", "hierarchy_type": "union",
+                                    "position": [0.0, 0.0, 0.0],
+                                    "children": [
+                                        {
+                                            "name": "cutout", "type": "sphere",
+                                            "radius": 0.8,
+                                            "position": [1.1, 0.0, 0.0],
+                                            "materials": [1]
+                                        },
+                                        {
+                                            "name": "cutout", "type": "sphere",
+                                            "radius": 0.8,
+                                            "position": [-1.1, 0.0, 0.0],
+                                            "materials": [1]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "back_axle", "type": "sphere",
+                    "radius": 0.2, "position": [0.0, 2.35, -1.9],
+                    "materials": [2]
+                },
+                {
+                    "name": "coloured_frame", "type": "node", "hierarchy_type": "intersection",
+                    "position": [0.0, 0.0, 0.0],
+                    "children": [
+                        {
+                            "name": "body", "type": "node", "hierarchy_type": "union",
+                            "position": [0.0, 0.0, 0.0],
+                            "children": [
+                                {
+                                    "name": "windshield", "type": "node", "hierarchy_type": "intersection",
+                                    "rotation": [15.0, 0.0, 0.0],
+                                    "scale": [0.7, 1.0, 1.0],
+                                    "children": [
+                                        {
+                                            "name": "body", "type": "sphere",
+                                            "radius": 4.001,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": [1]
+                                        },
+                                        {
+                                            "name": "body", "type": "box",
+                                            "min": [-0.25, 3.0, -1.0],
+                                            "max": [0.25, 4.0, 1.0],
+                                            "materials": [1]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "center_section", "type": "node", "hierarchy_type": "intersection",
+                                    "scale": [0.7, 1.0, 1.0],
+                                    "children": [
+                                        {
+                                            "name": "body", "type": "sphere",
+                                            "radius": 4.0,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": []
+                                        },
+                                        {
+                                            "name": "body", "type": "box",
+                                            "min": [-0.25, 3.0, -4.0],
+                                            "max": [0.25, 4.0, 4.0],
+                                            "materials": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "main_chassis", "type": "node", "hierarchy_type": "intersection",
+                                    "position": [0.0, 0.0, 0.0],
+                                    "scale": [0.4, 1.0, 1.0],
+                                    "children": [
+                                        {
+                                            "name": "body", "type": "sphere",
+                                            "radius": 3.9,
+                                            "position": [0.0, 0.0, 0.0],
+                                            "materials": []
+                                        },
+                                        {
+                                            "name": "body", "type": "box",
+                                            "min": [-1.0, 3.0, -4.0],
+                                            "max": [1.0, 4.0, 4.0],
+                                            "materials": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "name": "cutout", "type": "node",
+                            "position": [0.0, 0.0, 0.0],
+                            "rotation": [30.0, 0.0, 0.0],
+                            "children": [
+                                {
+                                    "name": "box", "type": "box",
+                                    "min": [-1, 2.3, -5],
+                                    "max": [1, 4, 5],
+                                    "materials": [1]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "subframe", "type": "node", "hierarchy_type": "difference",
+                    "position": [0.0, 0.0, 0.0],
+                    "children": [
+                        {
+                            "name": "subframe", "type": "box",
+                            "min": [-0.3, 1.8, -1.9],
+                            "max": [0.3, 3.3, 1.5],
+                            "materials": [2]
+                        },
+                        {
+                            "name": "cutout", "type": "node", "hierarchy_type": "union",
+                            "position": [0.0, 0.0, 0.0],
+                            "children": [
+                                {
+                                    "name": "cutout", "type": "sphere",
+                                    "radius": 0.4,
+                                    "position": [0.3, 2.35, -1.9],
+                                    "materials": [1]
+                                },
+                                {
+                                    "name": "cutout", "type": "sphere",
+                                    "radius": 0.4,
+                                    "position": [0.3, 2.35, -1.9],
+                                    "materials": [1]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "bike2", "type": "node", "hierarchy_type": "union",
+            "ref": "bike",
+            "position": [-2.0, -2.5, 2.0],
+            "materials": [9],
+            "speed": [0.0, 0.0, 0.5]
+        },
+        {
+            "name": "trail1", "type": "box",
+            "min": [-0.1, -0.4, -1.9],
+            "max": [0.1, 1.2, -500],
+            "materials": [4],
+            "speed": [0.0, 0.0, 0.5]
+        },
+        {
+            "name": "trail2", "type": "box",
+            "min": [-2.1, -0.4, 0.1],
+            "max": [-1.9, 1.2, -498],
+            "materials": [10],
+            "speed": [0.0, 0.0, 0.5]
+        }
+    ],
+    "lights": [
+        {
+            "name": "light",
+            "type": "directional",
+            "direction": [0.0, -1.0, 0.0],
+            "colour": [1.0, 1.0, 1.0],
+            "power": 0.8
+        },
+        {
+            "name": "light",
+            "type": "directional",
+            "direction": [-1.0, 0.0, -1.0],
+            "colour": [1.0, 1.0, 1.0],
+            "power": 0.8
+        }
+    ]
+}
+
